@@ -10,4 +10,5 @@
 
 ### Starting the rest api
 1. command line: "docker-compose build"
-2  commane line: "docker-compose up"
+
+2.  commane line: "docker-compose up"
