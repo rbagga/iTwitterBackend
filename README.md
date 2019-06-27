@@ -11,4 +11,8 @@
 ### Starting the rest api
 1. command line: "docker-compose build"
 
-2.  commane line: "docker-compose up"
+2. command line: "docker-compose up"
+
+### viewing db contents
+command line: "db.tododb.find()"
+
