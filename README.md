@@ -1,18 +1,11 @@
-# iTwitter Backend
+## Dockerizing Flask With Compose and Machine - From Localhost to the Cloud
 
-## Setup Instructions
+Featuring:
 
-<!--### Starting an instance of mongo db through docker-->
-<!--1. install **docker**-->
-<!--2. command line: run "docker pull mongo"-->
-<!--3. command line: "docker run --name [insert instance name here] mongo"-->
-<!--4. command line: "docker ps" to check that it is running-->
+- Docker v18.09.2
+- Docker Compose v1.23.2
+- Docker Machine v0.16.1
 
-### Starting the rest api
-1. command line: "docker-compose build"
+**Check out the awesome blog post here > https://realpython.com/blog/python/dockerizing-flask-with-compose-and-machine-from-localhost-to-the-cloud/**
 
-2. command line: "docker-compose up"
-
-### viewing db contents
-command line: "db.tododb.find()"
-
+Cheers!
