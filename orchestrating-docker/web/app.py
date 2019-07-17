@@ -25,15 +25,16 @@ def index():
     posts = Post.query.order_by(Post.date_posted.desc()).all()
     return render_template('index.html', posts=posts)
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
+@app.route('/test2', methods=['GET', 'POST'])
+def index2():
+    print("INDEX 2")
     if request.method == 'POST':
         question = request.form['question']
         question_post = Question(question)
         db.session.add(question_post)
         db.session.commit()
-    questions = Question.query.order_by(Question.date_posetd.desc()).all()
-    return render_template('index.html' questions = questions)
+    questions = Question.query.order_by(Question.date_posted.desc()).all()
+    return render_template('index.html', questions = questions)
 
 if __name__ == '__main__':
     app.run()

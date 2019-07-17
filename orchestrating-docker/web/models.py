@@ -22,9 +22,9 @@ class Question(db.Model):
     __tablename__ = 'questions'
 
     qid = db.Column(db.Integer, primary_key = True)
-    ques = db.Column(db.String, nullable = False)
-    date_posted = db.Column(db.DateTime, nullable = False)
+    ques = db.Column(db.String, nullable = True)
+    date_posted = db.Column(db.DateTime, nullable = True)
 
-    def __init__(self, text):
-        self.text = text
-        self.date_posted = dateime.datetime.now()
+    def __init__(self, ques):
+        self.ques = ques
+        self.date_posted = datetime.datetime.now()
