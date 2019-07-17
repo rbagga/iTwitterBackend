@@ -18,9 +18,9 @@
 <hr>
 
 <div>
-  {% for ques in questions %}
-    <h4 class="well"><strong>{{ques.question}}</strong> - <em>{{ques.date_posted.strftime('%Y-%m-%d')}}</em></h4>
+  {% for question in questions %}
+    <h4 class="well"> /<strong>{{question.ques}}</strong> - <em>{{question.date_posted.strftime('%Y-%m-%d')}}</em></h4>
   {% endfor %}
 </div>
 
-{%endlock}
+{% endblock %}
