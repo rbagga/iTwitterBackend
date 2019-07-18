@@ -36,5 +36,14 @@ def index2():
     questions = Question.query.order_by(Question.date_posted.desc()).all()
     return render_template('question.html', questions = questions)
 
+@app.route('/deletequestion', methods=['GET', 'POST'])
+def index4():
+    if request.method == 'POST':
+        qid_to_delete = request.form['qid']
+        Question.query.filter_by(qid=qid_to_delete).delete()
+        db.session.commit()
+    questions = Question.query.order_by(Question.date_posted.desc()).all()
+    return render_template('question.html', questions = questions)
+
 if __name__ == '__main__':
     app.run()
