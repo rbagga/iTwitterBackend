@@ -79,6 +79,17 @@ def index4():
         db.session.commit()
     questions = Question.query.order_by(Question.date_posted.desc()).all()
     return render_template('question.html', questions = questions)
+@app.route('/searchquestion', methods=['GET', 'POST'])
+def index5():
+    if request.method == 'POST':
+        qid_to_find = request.form['qid']
+        question = Question.query.filter_by(qid=qid_to_find)
+        questions = question
+    else:
+        questions = Question.query.order_by(Question.date_posted.desc()).all()
+    return render_template('question.html', questions = questions)
+
+
 
 if __name__ == '__main__':
     app.run()
