@@ -33,8 +33,23 @@ def index2():
         question_post = Question(question)
         db.session.add(question_post)
         db.session.commit()
-    # questions = Question.query.order_by(Question.date_posted.desc()).all()
-    return render_template('question.html', questions = [])
+    questions = Question.query.order_by(Question.date_posted.desc()).all()
+    return render_template('question.html', questions = questions)
 
+@app.route('/instrquestion', methods=['GET', 'POST'])
+def instrquestion():
+    if request.method == 'POST':
+        q = request.form['instr_question']
+        a =  request.form['optionA']
+        b = request.form['optionB']
+        c = request.form['optionC']
+        d = request.form['optionD']
+        ans = request.form['answer']
+        instructor_question = InstrQuestion(q, a, b, c, d, ans)
+        db.session.add(instructor_question)
+        db.session.commit()
+
+    questions = InstrQuestion.query.order_by(InstrQuestion.date_posted.desc()).all()
+    return render_template('instrquestion.html', questions = questions )
 if __name__ == '__main__':
     app.run()
