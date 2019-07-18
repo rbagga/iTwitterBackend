@@ -2,7 +2,7 @@
 
 
 from flask import Flask
-from flask import request, render_template
+from flask import request, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
 from config import BaseConfig
 
@@ -35,6 +35,18 @@ def index2():
         db.session.commit()
     questions = Question.query.order_by(Question.date_posted.desc()).all()
     return render_template('question.html', questions = questions)
+
+@app.route('/login', methods=['GET', 'POST'])
+def index3():
+    if request.method == 'POST':
+        netid = request.form['netid']
+        password = request.form['password']
+        validlogin = True ######## need to check this
+        if validlogin:
+            return redirect('/question', 302)
+    return render_template('login.html')
+
+
 
 if __name__ == '__main__':
     app.run()

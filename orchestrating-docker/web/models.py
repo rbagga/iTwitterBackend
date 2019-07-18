@@ -28,3 +28,8 @@ class Question(db.Model):
     def __init__(self, ques):
         self.ques = ques
         self.date_posted = datetime.datetime.now()
+
+#class Login(db.Model):
+    #__tablename__ = ''
+
+    #def __init(self, login):
