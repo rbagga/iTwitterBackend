@@ -14,12 +14,20 @@
   <input type = "submit" class = "btn btn-primary btn-lg btn-block" value = "Submit">
 </form>
 
+<form action ="/update_question" method = "POST">
+  <div class = "form-group">
+    <input name = "qid" class = "form-control input-lg" type="text" placeholder="Enter a qid" required>
+    <input name = "new_question" class = "form-control input-lg" type="text" placeholder="Enter New Question" required>
+  </div>
+  <input type = "submit" class = "btn btn-primary btn-lg btn-block" value = "Submit">
+</form>
+
 <br>
 <hr>
 
 <div>
   {% for question in questions %}
-    <h4 class="well"> /<strong>{{question.ques}}</strong> - <em>{{question.date_posted.strftime('%Y-%m-%d')}}</em></h4>
+    <h4 class="well"> /<strong>{{question.qid}}</strong> - <strong>{{question.ques}}</strong> - <em>{{question.date_posted.strftime('%Y-%m-%d')}}</em></h4>
   {% endfor %}
 </div>
 
