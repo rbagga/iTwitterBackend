@@ -73,6 +73,7 @@ def update_record():
         updated_question.date_posted = datetime.datetime.now()
     questions = Question.query.order_by(Question.date_posted.desc()).all()
     return render_template('question.html', questions = questions)
+
 @app.route('/deletequestion', methods=['GET', 'POST'])
 def index4():
     if request.method == 'POST':
@@ -81,6 +82,7 @@ def index4():
         db.session.commit()
     questions = Question.query.order_by(Question.date_posted.desc()).all()
     return render_template('question.html', questions = questions)
+
 @app.route('/searchquestion', methods=['GET', 'POST'])
 def index5():
     if request.method == 'POST':
