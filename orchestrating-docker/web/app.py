@@ -6,6 +6,7 @@ from flask import request, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
 from config import BaseConfig
 
+from sqlalchemy import func
 
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
@@ -14,6 +15,7 @@ db = SQLAlchemy(app)
 
 from models import *
 
+count_total_question = -1
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -93,6 +95,24 @@ def index5():
         questions = Question.query.order_by(Question.date_posted.desc()).all()
     return render_template('question.html', questions = questions)
 
+#new_stuff added
+@app.route('/count_question', methods=['GET', 'POST'])
+def count_question():
+    if request.method == 'POST':
+        question_asked = request.form['question']
+        global count_total_question
+        count_total_question = db.session.query(db.func.count(Question.ques)).filter_by(ques=question_asked)
+        print(count_total_question)
+    questions = Question.query.order_by(Question.date_posted.desc()).all()
+    return render_template('question.html', questions = questions)
+
+        #reference material
+'''
+my_stats = session.query(company_changes,func.count(distinct(company_changes.id)).label('ChangesCount'))
+.filter(company_changes.closed_at > '2018-06-04',company_changes.closed_at < '2018-06-05')
+.group_by(company_changes.username)
+.group_by(company_changes.company_name)
+'''
 
 
 if __name__ == '__main__':
