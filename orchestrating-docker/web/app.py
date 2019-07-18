@@ -33,8 +33,8 @@ def index2():
         question_post = Question(question)
         db.session.add(question_post)
         db.session.commit()
-    questions = Question.query.order_by(Question.date_posted.desc()).all()
-    return render_template('question.html', questions = questions)
+    # questions = Question.query.order_by(Question.date_posted.desc()).all()
+    return render_template('question.html', questions = [])
 
 if __name__ == '__main__':
     app.run()
