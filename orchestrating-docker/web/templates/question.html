@@ -25,6 +25,13 @@
 <br>
 <hr>
 
+<form action ="/deletequestion" method = "POST">
+  <div class = "form-group">
+    <input name = "qid" class = "form-control input-lg" type="text" placeholder="Enter a qid to delete" required>
+  </div>
+  <input type = "submit" class = "btn btn-primary btn-lg btn-block" value = "Submit">
+</form>
+
 <div>
   {% for question in questions %}
     <h4 class="well"> /<strong>{{question.qid}}</strong> - <strong>{{question.ques}}</strong> - <em>{{question.date_posted.strftime('%Y-%m-%d')}}</em></h4>

@@ -51,7 +51,7 @@ def instrquestion():
 
     questions = InstrQuestion.query.order_by(InstrQuestion.date_posted.desc()).all()
     return render_template('instrquestion.html', questions = questions )
-    
+
 @app.route('/login', methods=['GET', 'POST'])
 def index3():
     if request.method == 'POST':
@@ -71,6 +71,11 @@ def update_record():
         updated_question = Question.query.get(qid)
         updated_question.ques = new_question
         updated_question.date_posted = datetime.datetime.now()
+@app.route('/deletequestion', methods=['GET', 'POST'])
+def index4():
+    if request.method == 'POST':
+        qid_to_delete = request.form['qid']
+        Question.query.filter_by(qid=qid_to_delete).delete()
         db.session.commit()
     questions = Question.query.order_by(Question.date_posted.desc()).all()
     return render_template('question.html', questions = questions)
