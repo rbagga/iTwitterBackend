@@ -6,7 +6,7 @@ from flask import request, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
 from config import BaseConfig
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
@@ -101,10 +101,12 @@ def count_question():
     if request.method == 'POST':
         question_asked = request.form['question']
         global count_total_question
-        count_total_question = db.session.query(db.func.count(Question.ques)).filter_by(ques=question_asked)
-        print(count_total_question)
+        # count_total_query = db.session.query(func.count(Question.qid))
+        count_total_query = db.engine.execute('select count(*) from questions')
+        count_total = count_total_query.fetchall()
+        #print(count_total_question)
     questions = Question.query.order_by(Question.date_posted.desc()).all()
-    return render_template('question.html', questions = questions)
+    return render_template('count.html', count = count_total_question)
 
         #reference material
 '''
