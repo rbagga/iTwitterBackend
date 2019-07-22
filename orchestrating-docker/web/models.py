@@ -1,9 +1,14 @@
 # models.py
 
 
+from flask_sqlalchemy import SQLAlchemy
+from config import BaseConfig
+
+# from sqlalchemy import func, select, text
+# app = Flask(__name__)
 import datetime
 from app import db
-
+# db = SQLAlchemy(app)
 
 class Post(db.Model):
 

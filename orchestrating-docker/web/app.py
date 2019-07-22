@@ -4,6 +4,7 @@
 from flask import Flask
 from flask import request, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
+from flask_restplus import Api, Namespace, abort, Resource, fields, marshal_with
 from config import BaseConfig
 
 from sqlalchemy import func, select, text
@@ -11,104 +12,133 @@ from sqlalchemy import func, select, text
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
 db = SQLAlchemy(app)
+api = Api(app)
 
 
 from models import *
+from question import api as question_ns
 
-count_total_question = -1
+api.add_namespace(question_ns)
+get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        text = request.form['text']
-        post = Post(text)
-        db.session.add(post)
-        db.session.commit()
-    posts = Post.query.order_by(Post.date_posted.desc()).all()
-    return render_template('index.html', posts=posts)
+@api.route('/hello')
+class HelloWorld(Resource):
+    def get(self):
 
-@app.route('/question', methods=['GET', 'POST'])
-def index2():
-    print("INDEX 2")
-    if request.method == 'POST':
-        question = request.form['question']
-        question_post = Question(question)
-        db.session.add(question_post)
-        db.session.commit()
-    questions = Question.query.order_by(Question.date_posted.desc()).all()
-    return render_template('question.html', questions = questions)
+        x = Question("test")
+        return {'hello': 'world'}
+        test = Question(test)
+#
+# if __name__ == '__main__':
+#     app.run(debug=True)
 
-@app.route('/instrquestion', methods=['GET', 'POST'])
-def instrquestion():
-    if request.method == 'POST':
-        q = request.form['instr_question']
-        a =  request.form['optionA']
-        b = request.form['optionB']
-        c = request.form['optionC']
-        d = request.form['optionD']
-        ans = request.form['answer']
-        instructor_question = InstrQuestion(q, a, b, c, d, ans)
-        db.session.add(instructor_question)
-        db.session.commit()
+#
+# @api.route('/', methods=['GET', 'POST'])
+# def index():
+#     if request.method == 'POST':
+#         text = request.form['text']
+#         post = Post(text)
+#         db.session.add(post)
+#         db.session.commit()
+#     posts = Post.query.order_by(Post.date_posted.desc()).all()
+#     return render_template('index.html', posts=posts)
 
-    questions = InstrQuestion.query.order_by(InstrQuestion.date_posted.desc()).all()
-    return render_template('instrquestion.html', questions = questions )
-
-@app.route('/login', methods=['GET', 'POST'])
-def index3():
-    if request.method == 'POST':
-        netid = request.form['netid']
-        password = request.form['password']
-        validlogin = True ######## need to check this
-        if validlogin:
-            return redirect('/question', 302)
-    return render_template('login.html')
+# @api.route('/question', methods=['GET', 'POST'])
+# def index2():
+#     print("INDEX 2")
+#     if request.method == 'POST':
+#         question = request.form['question']
+#         question_post = Question(question)
+#         db.session.add(question_post)
+#         db.session.commit()
+#     questions = Question.query.order_by(Question.date_posted.desc()).all()
+#     return render_template('question.html', questions = questions)
+#
 
 
-@app.route('/update_question', methods=['GET', 'POST'])
-def update_record():
-    if request.method == "POST":
-        qid = request.form['qid']
-        new_question = request.form['new_question']
-        updated_question = Question.query.get(qid)
-        updated_question.ques = new_question
-        updated_question.date_posted = datetime.datetime.now()
-    questions = Question.query.order_by(Question.date_posted.desc()).all()
-    return render_template('question.html', questions = questions)
-
-@app.route('/deletequestion', methods=['GET', 'POST'])
-def index4():
-    if request.method == 'POST':
-        qid_to_delete = request.form['qid']
-        Question.query.filter_by(qid=qid_to_delete).delete()
-        db.session.commit()
-    questions = Question.query.order_by(Question.date_posted.desc()).all()
-    return render_template('question.html', questions = questions)
-
-@app.route('/searchquestion', methods=['GET', 'POST'])
-def index5():
-    if request.method == 'POST':
-        qid_to_find = request.form['qid']
-        question = Question.query.filter_by(qid=qid_to_find)
-        questions = question
-    else:
-        questions = Question.query.order_by(Question.date_posted.desc()).all()
-    return render_template('question.html', questions = questions)
-
-#new_stuff added
-@app.route('/count_question', methods=['GET', 'POST'])
-def count_question():
-    if request.method == 'POST':
-        question_asked = request.form['question']
-        global count_total_question
-        query = text('select count(*) from questions where ques = :question')
-        # count_total_query = db.session.query(func.count(questions)).filter(and_(questions.ques == question_asked))
-        #count_total_query = db.engine.execute('select count(*) from questions where ques = :question', question = question_asked)
-        count_total_query = db.engine.execute(query, question = question_asked)
-        count_total = count_total_query.fetchall()
-        #print(count_total_question)
-    questions = Question.query.order_by(Question.date_posted.desc()).all()
-    return render_template('count.html', count = count_total[0][0])
+@api.route('/question/<qid>')
+class StudentQuestions(Resource):
+    # @api.marshal_list_with(get_question_model)
+    # @api.expect(get_question_model, validate=True)
+    def get(self, qid):
+        return True
+    # def post(self, question):
+    #     question_post = Question(question)
+    #     db.session.add(question_post)
+    #     db.session.commit()
+    #     return True
+#
+# @api.route('/instrquestion', methods=['GET', 'POST'])
+# def instrquestion():
+#     if request.method == 'POST':
+#         q = request.form['instr_question']
+#         a =  request.form['optionA']
+#         b = request.form['optionB']
+#         c = request.form['optionC']
+#         d = request.form['optionD']
+#         ans = request.form['answer']
+#         instructor_question = InstrQuestion(q, a, b, c, d, ans)
+#         db.session.add(instructor_question)
+#         db.session.commit()
+#
+#     questions = InstrQuestion.query.order_by(InstrQuestion.date_posted.desc()).all()
+#     return render_template('instrquestion.html', questions = questions )
+#
+# @api.route('/login', methods=['GET', 'POST'])
+# def index3():
+#     if request.method == 'POST':
+#         netid = request.form['netid']
+#         password = request.form['password']
+#         validlogin = True ######## need to check this
+#         if validlogin:
+#             return redirect('/question', 302)
+#     return render_template('login.html')
+#
+#
+# @api.route('/update_question', methods=['GET', 'POST'])
+# def update_record():
+#     if request.method == "POST":
+#         qid = request.form['qid']
+#         new_question = request.form['new_question']
+#         updated_question = Question.query.get(qid)
+#         updated_question.ques = new_question
+#         updated_question.date_posted = datetime.datetime.now()
+#     questions = Question.query.order_by(Question.date_posted.desc()).all()
+#     return render_template('question.html', questions = questions)
+#
+# @api.route('/deletequestion', methods=['GET', 'POST'])
+# def index4():
+#     if request.method == 'POST':
+#         qid_to_delete = request.form['qid']
+#         Question.query.filter_by(qid=qid_to_delete).delete()
+#         db.session.commit()
+#     questions = Question.query.order_by(Question.date_posted.desc()).all()
+#     return render_template('question.html', questions = questions)
+#
+# @app.route('/searchquestion', methods=['GET', 'POST'])
+# def index5():
+#     if request.method == 'POST':
+#         qid_to_find = request.form['qid']
+#         question = Question.query.filter_by(qid=qid_to_find)
+#         questions = question
+#     else:
+#         questions = Question.query.order_by(Question.date_posted.desc()).all()
+#     return render_template('question.html', questions = questions)
+#
+# #new_stuff added
+# @api.route('/count_question', methods=['GET', 'POST'])
+# def count_question():
+#     if request.method == 'POST':
+#         question_asked = request.form['question']
+#         global count_total_question
+#         query = text('select count(*) from questions where ques = :question')
+#         # count_total_query = db.session.query(func.count(questions)).filter(and_(questions.ques == question_asked))
+#         #count_total_query = db.engine.execute('select count(*) from questions where ques = :question', question = question_asked)
+#         count_total_query = db.engine.execute(query, question = question_asked)
+#         count_total = count_total_query.fetchall()
+#         #print(count_total_question)
+#     questions = Question.query.order_by(Question.date_posted.desc()).all()
+#     return render_template('count.html', count = count_total[0][0])
 
         #reference material
 '''
@@ -120,7 +150,7 @@ my_stats = session.query(company_changes,func.count(distinct(company_changes.id)
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
 
 
 
