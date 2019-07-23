@@ -61,15 +61,16 @@ def Administrator():
         LastName= request.form['LastName']
         Email = request.form['Email']
         Password = request.form['Password']
-        Instructors = Administrators.query.filter(NetId = NetId)
-        if len(Instructors) not 0: 
+        Instructors = Administrators.NetId.query.filter(NetId = NetId)
+        if len(Instructors) != 0: 
             newuserInfo = Administrators(NetId, FirstName, LastName, Email, Password)
-            db.session.add(newuserInfo)
-            db.session.commit()
+        db.session.add(newuserInfo)
+        db.session.commit()
         else: 
             newuserInfo = Students(NetId, FirstName, LastName, Email, Password)
-            db.session.add(newuserInfo)
-            db.session.commit()
+        db.session.add(newuserInfo)
+        db.session.commit()
+        return redirect('/question', 302)
     return render_template('newuserinfo.html')
 
 @app.route('/newcourse', methods=['GET', 'POST'])
@@ -90,7 +91,16 @@ def index3():
     if request.method == 'POST':
         netid = request.form['netid']
         password = request.form['password']
-        validlogin = True ######## need to check this
+
+        netid_Instr = Administrators.NetId.query.filter(NetId = netid)
+        net_Stu = Students.NetId.query.filter(NetId = netid)
+
+        Password_Instr = Administrators.Password.query.filter(NetId = netid)
+        Password_Stu = Students.Password.query.filter(NetId = netid)
+
+        validlogin = False ######## need to check this
+        if Password == Password_Instr or Password == Password_Stu and (netid == netid_Instr or netid == netid_Stu):
+            validlogin = True
         if validlogin:
             return redirect('/question', 302)
     return render_template('login.html')
