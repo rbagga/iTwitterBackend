@@ -50,18 +50,18 @@ def instrquestion():
         instructor_question = InstrQuestion(q, a, b, c, d, ans)
         db.session.add(instructor_question)
         db.session.commit()
-    questions = InstrQuestion.query.order_by(InstrQuestion.desc()).all()
+    questions = InstrQuestion.order(InstrQuestion.desc()).all()
     return render_template('instrquestion.html', questions = questions )
 
 @app.route('/newuserinfo', methods=['GET', 'POST'])
 def Administrator():
     if request.method == 'POST':
-        NetId = request.form['NetId']
+        Netid = request.form['NetId']
         FirstName =  request.form['FirstName']
         LastName= request.form['LastName']
         Email = request.form['Email']
         Password = request.form['Password']
-        Instructors = Administrators.NetId.query.filter(NetId = NetId)
+        Instructors = Administrators.NetId.query.filter_by(NetId = Netid)
         if len(Instructors) != 0: 
             newuserInfo = Administrators(NetId, FirstName, LastName, Email, Password)
         db.session.add(newuserInfo)
@@ -92,11 +92,11 @@ def index3():
         netid = request.form['netid']
         password = request.form['password']
 
-        netid_Instr = Administrators.NetId.query.filter(NetId = netid)
-        net_Stu = Students.NetId.query.filter(NetId = netid)
+        netid_Instr = Administrators.NetId.filter(NetId = netid)
+        net_Stu = Students.NetId.query.filter_by(NetId = netid)
 
-        Password_Instr = Administrators.Password.query.filter(NetId = netid)
-        Password_Stu = Students.Password.query.filter(NetId = netid)
+        Password_Instr = Administrators.Password.filter(NetId = netid)
+        Password_Stu = Students.Password.filter(NetId = netid)
 
         validlogin = False ######## need to check this
         if Password == Password_Instr or Password == Password_Stu and (netid == netid_Instr or netid == netid_Stu):
