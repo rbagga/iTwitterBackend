@@ -3,82 +3,106 @@
 
 from app import db
 import psycopg2
-from config import config
+from config import BaseConfig
 
 def create_tables():
     """ create tables in the PostgreSQL database"""
     commands = (
-        CREATE TABLE
+        """
+        CREATE TABLE login_details (
+        netid VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255),
+        UIN INTEGER
+        )
+        """ ,
+        """
+        CREATE TABLE courses (
+        course_number VARCHAR(255),
+        term VARCHAR(255),
+        title VARCHAR(255),
+        instructor VARCHAR(255),
+        PRIMARY KEY(course_number, term)
+        )
+        """,
+        """
+        CREATE TABLE faculty (
+        netid VARCHAR(255),
+        dept VARCHAR(255),
+        office_number INTEGER,
+        term VARCHAR(255),
+        course_number VARCHAR(255),
+        PRIMARY KEY(netid, term),
+        FOREIGN KEY (course_number, term)
+        REFERENCES courses (course_number, term)
+        ON DELETE CASCADE,
+        FOREIGN KEY(netid)
+        REFERENCES login_details(netid)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+        )
+        """,
+        """
+        CREATE TABLE students (
+        netid VARCHAR(255) PRIMARY KEY,
+        dept VARCHAR(255),
+        year VARCHAR(255),
+        FOREIGN KEY(netid)
+        REFERENCES login_details(netid)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+        )
+        """,
+        """
+        CREATE TABLE s_take (
+        netid VARCHAR(255),
+        course_number VARCHAR(255),
+        term VARCHAR(255),
+        PRIMARY KEY(netid, course_number, term)
+        )
+        """,
+        """
+        CREATE TABLE piazza (
+        q_number INTEGER,
+        date_posted TIMESTAMP without TIME ZONE NOT NULL,
+        course VARCHAR(255),
+        up_votes INTEGER,
+        sub_group VARCHAR(255),
+        PRIMARY KEY(q_number, date_posted, course)
+        ) """
+        #create more tables below as necessary looking at the Relational Schema
     )
 
-#will not need that afterwards
+    conn = None
+    try:
+        #DB_USER, DB_PASS, DB_SERVICE, DB_PORT, DB_NAME
+        params = BaseConfig()
+        host_ = params.DB_SERVICE
+        port_ = params.DB_PORT
+        database_ = params.DB_NAME
+        user_ = params.DB_USER
+        password_ = params.DB_PASS
+        conn = psycopg2.connect(host=host_, database=database_, user=user_, password=password_, port=port_)
+
+        cur = conn.cursor()
+
+        for command in commands:
+                cur.execute(command)
+
+        cur.close()
+        conn.commit()
+
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+
+create_tables()
+#will not need this afterwards
 db.create_all()
 
-
-''' Reference Material '''
-
-
-# import psycopg2
-# from config import config
-#
-#
-# def create_tables():
-#     """ create tables in the PostgreSQL database"""
-#     commands = (
-#         """
-#         CREATE TABLE vendors (
-#             vendor_id SERIAL PRIMARY KEY,
-#             vendor_name VARCHAR(255) NOT NULL
-#         )
-#         """,
-#         """ CREATE TABLE parts (
-#                 part_id SERIAL PRIMARY KEY,
-#                 part_name VARCHAR(255) NOT NULL
-#                 )
-#         """,
-#         """
-#         CREATE TABLE part_drawings (
-#                 part_id INTEGER PRIMARY KEY,
-#                 file_extension VARCHAR(5) NOT NULL,
-#                 drawing_data BYTEA NOT NULL,
-#                 FOREIGN KEY (part_id)
-#                 REFERENCES parts (part_id)
-#                 ON UPDATE CASCADE ON DELETE CASCADE
-#         )
-#         """,
-#         """
-#         CREATE TABLE vendor_parts (
-#                 vendor_id INTEGER NOT NULL,
-#                 part_id INTEGER NOT NULL,
-#                 PRIMARY KEY (vendor_id , part_id),
-#                 FOREIGN KEY (vendor_id)
-#                     REFERENCES vendors (vendor_id)
-#                     ON UPDATE CASCADE ON DELETE CASCADE,
-#                 FOREIGN KEY (part_id)
-#                     REFERENCES parts (part_id)
-#                     ON UPDATE CASCADE ON DELETE CASCADE
-#         )
-#         """)
-#     conn = None
-#     try:
-#         # read the connection parameters
-#         params = config()
-#         # connect to the PostgreSQL server
-#         conn = psycopg2.connect(**params)
-#         cur = conn.cursor()
-#         # create table one by one
-#         for command in commands:
-#             cur.execute(command)
-#         # close communication with the PostgreSQL database server
-#         cur.close()
-#         # commit the changes
-#         conn.commit()
-#     except (Exception, psycopg2.DatabaseError) as error:
-#         print(error)
-#     finally:
-#         if conn is not None:
-#             conn.close()
-#
-#
-# if __name__ == '__main__':
 #     create_tables()
