@@ -60,9 +60,16 @@ def Administrator():
         FirstName =  request.form['FirstName']
         LastName= request.form['LastName']
         Email = request.form['Email']
-        newuserInfo = Administrators(NetId, FirstName, LastName, Email)
-        db.session.add(newuserInfo)
-        db.session.commit()
+        Password = request.form['Password']
+        Instructors = Administrators.query.filter(NetId = NetId)
+        if len(Instructors) not 0: 
+            newuserInfo = Administrators(NetId, FirstName, LastName, Email, Password)
+            db.session.add(newuserInfo)
+            db.session.commit()
+        else: 
+            newuserInfo = Students(NetId, FirstName, LastName, Email, Password)
+            db.session.add(newuserInfo)
+            db.session.commit()
     return render_template('newuserinfo.html')
 
 @app.route('/newcourse', methods=['GET', 'POST'])

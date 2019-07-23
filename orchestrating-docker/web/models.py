@@ -64,16 +64,6 @@ class Courses(db.Model):
         self.Term = Term
         self.Course = Course
 
-class login_Info(db.Model):
-    __tablename__ = 'LoginInfo'
-
-    NetId = db.Column(db.String, primary_key = True)
-    Password = db.Column(db.String, nullable = True)
-
-    def __init__(self, NetId, Password):
-        self.NetId = NetId
-        self.Password = Password
-
 class Students(db.Model):
     __tablename__ = 'Students'
 
@@ -82,13 +72,14 @@ class Students(db.Model):
     LastName = db.Column(db.String, nullable = True)
     Email = db.Column(db.String, nullable = True)
     UIN = db.Column(db.Integer, nullable = False)
+    Password = db.Column(db.String, nullable = True)
     
-    def __init__(self, NetId, FirstName, LastName, Email):
+    def __init__(self, NetId, FirstName, LastName, Email, Password):
         self.NetId = NetId
         self.FirstName = FirstName
         self.LastName = LastName
         self.Email = Email
-
+        self.Password = Password
 class Administrators(db.Model):
     __tablename__ = 'Administrator'
 
@@ -97,10 +88,12 @@ class Administrators(db.Model):
     LastName = db.Column(db.String, nullable = True)
     Email = db.Column(db.String, nullable = True)
     UIN = db.Column(db.Integer, nullable = False)
-    
-    def __init__(self, NetId, FirstName, LastName, Email):
+    Password = db.Column(db.String, nullable = True)
+
+    def __init__(self, NetId, FirstName, LastName, Email, Password):
         self.NetId = NetId
         self.FirstName = FirstName
         self.LastName = LastName
         self.Email = Email
+        self.Password = Password
         
