@@ -1,0 +1,22 @@
+
+<div class='text-center'>
+  <h1>Sign Up</h1>
+</div>
+
+<br>
+
+<form action ="/newuserinfo" method = "Post">
+  <div class = "form-group">
+    <input name = "NetId" class = "form-control input-lg" type="text" placeholder="NetId" required>
+    <input name = "FirstName" class = "form-control input-lg" type="text" placeholder="First Name" required>
+    <input name = "LastName" class = "form-control input-lg" type="text" placeholder="Last Name" required>
+    <input name = "Email" class = "form-control input-lg" type="text" placeholder="Email" required>
+    <select name = "Status" class = "form-control input-lg" required>
+      <option >instructor</option>
+      <option >Student</option>
+    </select>
+    <input name = "Password" class = "form-control input-lg" type="Password" placeholder="Enter Password" required>
+  </div>
+  <input type = "submit" class = "btn btn-primary btn-lg btn-block" value = "Submit">
+</form>
+

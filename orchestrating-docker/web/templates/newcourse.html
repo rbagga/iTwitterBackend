@@ -1,0 +1,28 @@
+{% extends "_base.html" %}
+{% block content %}
+
+<div class='text-center'>
+  <h1>Enter A New Course</h1>
+</div>
+
+<br>
+
+<form action ="/newcourse" method = "Post">
+  <div class = "form-group">
+    <input name = "CRN" class = "form-control input-lg" type="text" placeholder="Enter Course CRN" required>
+    <select name = "Term" class = "form-control input-lg" required>
+      <option >Fall</option>
+      <option >Spring</option>
+    </select>
+    <select name = "Year" class = "form-control input-lg" required>
+      <option >2019</option>
+      <option >2020</option>
+      <option >2021</option>
+    </select>
+    <input name = "Course" class = "form-control input-lg" type="Password" placeholder="Enter Course Title" required>
+  </div>
+  <input type = "submit" class = "btn btn-primary btn-lg btn-block" value = "Submit">
+  {% endfor %}
+</form>
+{% endblock %}
+
