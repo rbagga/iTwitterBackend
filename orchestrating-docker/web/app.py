@@ -50,9 +50,33 @@ def instrquestion():
         instructor_question = InstrQuestion(q, a, b, c, d, ans)
         db.session.add(instructor_question)
         db.session.commit()
-
-    questions = InstrQuestion.query.order_by(InstrQuestion.date_posted.desc()).all()
+    questions = InstrQuestion.query.order_by(InstrQuestion.desc()).all()
     return render_template('instrquestion.html', questions = questions )
+
+@app.route('/newuserinfo', methods=['GET', 'POST'])
+def Administrator():
+    if request.method == 'POST':
+        NetId = request.form['NetId']
+        FirstName =  request.form['FirstName']
+        LastName= request.form['LastName']
+        Email = request.form['Email']
+        newuserInfo = Administrators(NetId, FirstName, LastName, Email)
+        db.session.add(newuserInfo)
+        db.session.commit()
+    return render_template('newuserinfo.html')
+
+@app.route('/newcourse', methods=['GET', 'POST'])
+def newclass():
+    if request.method == 'POST':
+        CRN = request.form['CRN']
+        Year = request.form['Year']
+        Term =  request.form['Term']
+        Course =  request.form['Course']
+        newClass = Courses(CRN, Year,Term, Course)
+        db.session.add(newClass)
+        db.session.commit()
+    return render_template('newcourse.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def index3():

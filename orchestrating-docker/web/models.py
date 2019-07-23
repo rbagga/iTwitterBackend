@@ -49,3 +49,58 @@ class InstrQuestion(db.Model):
         self.optionD = d
         self.answer = answer
         self.date_posted = datetime.datetime.now()
+
+class Courses(db.Model):
+    __tablename__ = 'NewCoursesInfo'
+
+    CRN = db.Column(db.Integer, primary_key = True)
+    Year = db.Column(db.Integer, nullable = True)
+    Term = db.Column(db.String, nullable = True)
+    Course = db.Column(db.String, nullable = True)
+    
+    def __init__(self, CRN, Year, Term, Course):
+        self.CRN = CRN
+        self.Year = Year
+        self.Term = Term
+        self.Course = Course
+
+class login_Info(db.Model):
+    __tablename__ = 'LoginInfo'
+
+    NetId = db.Column(db.String, primary_key = True)
+    Password = db.Column(db.String, nullable = True)
+
+    def __init__(self, NetId, Password):
+        self.NetId = NetId
+        self.Password = Password
+
+class Students(db.Model):
+    __tablename__ = 'Students'
+
+    NetId = db.Column(db.String, primary_key = True)
+    FirstName = db.Column(db.String, nullable = True)
+    LastName = db.Column(db.String, nullable = True)
+    Email = db.Column(db.String, nullable = True)
+    UIN = db.Column(db.Integer, nullable = False)
+    
+    def __init__(self, NetId, FirstName, LastName, Email):
+        self.NetId = NetId
+        self.FirstName = FirstName
+        self.LastName = LastName
+        self.Email = Email
+
+class Administrators(db.Model):
+    __tablename__ = 'Administrator'
+
+    NetId = db.Column(db.String, primary_key = True)
+    FirstName = db.Column(db.String, nullable = True)
+    LastName = db.Column(db.String, nullable = True)
+    Email = db.Column(db.String, nullable = True)
+    UIN = db.Column(db.Integer, nullable = False)
+    
+    def __init__(self, NetId, FirstName, LastName, Email):
+        self.NetId = NetId
+        self.FirstName = FirstName
+        self.LastName = LastName
+        self.Email = Email
+        
