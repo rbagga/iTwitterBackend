@@ -1,6 +1,4 @@
 # app.py
-
-
 from flask import Flask, jsonify
 from flask import request, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
@@ -12,20 +10,22 @@ app = Flask(__name__)
 app.config.from_object(BaseConfig)
 db = SQLAlchemy(app)
 api = Api(app)
-q_api = Namespace('question', description = 'question operations')
+q_api = Namespace('student question', description = 'question operations')
+iq_api = Namespace('instructor question', description = 'instructor question operations')
 
 from models import *
-# from question import api as question_ns
 
 api.add_namespace(q_api)
-# api.add_namespace(question_ns)
 get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
 post_question_model = api.model('question', {'question': fields.String})
 
-
 @q_api.route('/')
 class StudentQuestionPost(Resource):
-    # @api.marshal_with(post_question_model, code=201)
+    def get(self):
+        query = text('SELECT * from questions')
+        response = db.engine.execute(query).fetchall()
+        return jsonify({response: [dict(row) for row in response]})
+
     @api.expect(post_question_model)
     @api.doc(body=post_question_model)
     def post(self):
@@ -54,18 +54,18 @@ class StudentQuestion(Resource):
 
 
 
-@api.route('/hello')
-class HelloWorld(Resource):
-    def get(self):
-
-        x = Question("test")
-        # return {'hello': 'world'}
-        # return jsonify(posts=list(db.Question.query.all()))
-        #return jsonify(posts=as_dict(((db.engine.execute('select * from questions').fetchall()))))
-        posts = db.engine.execute('select * from questions').fetchall()
-        # return jsonify(posts)
-        return jsonify({'result': [dict(row) for row in posts]})
-        test = Question(test)
+# @api.route('/hello')
+# class HelloWorld(Resource):
+#     def get(self):
+#
+#         x = Question("test")
+#         # return {'hello': 'world'}
+#         # return jsonify(posts=list(db.Question.query.all()))
+#         #return jsonify(posts=as_dict(((db.engine.execute('select * from questions').fetchall()))))
+#         posts = db.engine.execute('select * from questions').fetchall()
+#         # return jsonify(posts)
+#         return jsonify({'result': [dict(row) for row in posts]})
+#         test = Question(test)
 #
 # if __name__ == '__main__':
 #     app.run(debug=True)
