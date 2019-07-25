@@ -22,6 +22,8 @@ def index():
     if request.method == 'POST':
         text = request.form['text']
         post = Post(text)
+        # session = Session("Prof Rishu", "cs1000", "SU19")
+        # response = ("rbagga2", "session1", "question3")
         db.session.add(post)
         db.session.commit()
     posts = Post.query.order_by(Post.date_posted.desc()).all()

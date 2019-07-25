@@ -29,37 +29,46 @@ class Question(db.Model):
         self.ques = ques
         self.date_posted = datetime.datetime.now()
 
-class Question(db.Model):
-    __tablename__ = 'sessionid'
+class Session(db.Model):
+    __tablename__ = 'session'
 
     sessionId = db.Column(db.Integer, primary_key = True)
-    lectuer = db.Column(db.String, nullable = True)
+    # professor = db.Column(db.String, nullable = True)
+    startTime = db.Column(db.DateTime, nullable = False)
     status = db.Column(db.String, nullable = True)
-    lecturer = db.Column(db.String, nullable = True)
-    lecture = db.Column(db.String, nullable = True)
-    term  = = db.Column(db.String, nullable = True)
+    professor = db.Column(db.String, nullable = False)
+    classID = db.Column(db.String, nullable = False)
+    term  = db.Column(db.String, nullable = False)
 
-    def __init__(self, sessionId, lecturer, lecture, term, status):
-        self.sessionId = sessionId
-        self.lecturer = lecturer
-        self.lecture = lecture
+    def __init__(self, professor, classID, term, status='Scheduled'):
+        # self.sessionId = sessionId
+        self.professor = professor
+        self.classID = classID
+        '''change this later to be date time input by user!!!'''
+        self.startTime = datetime.datetime.now()
+
+        # self.lecture = lecture
         self.term = term
         self.status = status
 
-class Question(db.Model):
+class Responses(db.Model):
     __tablename__ = 'responses'
 
-    Netid = db.Column(db.String, primary_key = True)
-    session = db.Column(db.String, nullable = True)
-    timespam = db.Column(db.String, nullable = True)
-    question_num = db.Column(db.DateTime, nullable = True)
-    
-    def __init__(self, Netid, session, question_num):
-        self.Netid = Netid
-        self.session = session
-        self.timespam = timespam
+    responseID = db.Column(db.Integer, primary_key = True)
+    netid = db.Column(db.String, nullable = False)
+    session = db.Column(db.String, nullable = False)
+    timestamp = db.Column(db.String, nullable = False)
+    question_num = db.Column(db.DateTime, nullable = False)
+    response = db.Column(db.String, nullable = True)
 
-       
+    def __init__(self, netid, session, question_num, response=False):
+        self.netid = netid
+        self.session = session
+        self.question_num = question_num
+        self.response = response
+        self.timestamp = datetime.datetime.now()
+
+
 class InstrQuestion(db.Model):
     __tablename__ = 'instrquestions'
 
@@ -72,7 +81,7 @@ class InstrQuestion(db.Model):
     answer = db.Column(db.String, nullable = False)
     date_posted = db.Column(db.DateTime, nullable = False)
 
-    def __init__(self, ques, a, b, c, d, answer):
+    def __init__(self, ques, answer, a, b=None, c=None, d=None):
         self.ques = ques
         self.optionA = a
         self.optionB = b
