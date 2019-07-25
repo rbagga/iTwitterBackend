@@ -29,6 +29,37 @@ class Question(db.Model):
         self.ques = ques
         self.date_posted = datetime.datetime.now()
 
+class Question(db.Model):
+    __tablename__ = 'sessionid'
+
+    sessionId = db.Column(db.Integer, primary_key = True)
+    lectuer = db.Column(db.String, nullable = True)
+    status = db.Column(db.String, nullable = True)
+    lecturer = db.Column(db.String, nullable = True)
+    lecture = db.Column(db.String, nullable = True)
+    term  = = db.Column(db.String, nullable = True)
+
+    def __init__(self, sessionId, lecturer, lecture, term, status):
+        self.sessionId = sessionId
+        self.lecturer = lecturer
+        self.lecture = lecture
+        self.term = term
+        self.status = status
+
+class Question(db.Model):
+    __tablename__ = 'responses'
+
+    Netid = db.Column(db.String, primary_key = True)
+    session = db.Column(db.String, nullable = True)
+    timespam = db.Column(db.String, nullable = True)
+    question_num = db.Column(db.DateTime, nullable = True)
+    
+    def __init__(self, Netid, session, question_num):
+        self.Netid = Netid
+        self.session = session
+        self.timespam = timespam
+
+       
 class InstrQuestion(db.Model):
     __tablename__ = 'instrquestions'
 
