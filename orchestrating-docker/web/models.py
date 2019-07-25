@@ -49,3 +49,19 @@ class InstrQuestion(db.Model):
         self.optionD = d
         self.answer = answer
         self.date_posted = datetime.datetime.now()
+
+class QuestionStatus(db.Model):
+    __tablename__ = 'questionstatus'
+
+    qStatusID = db.Column(db.Integer, primary_key = True)
+    sessionID = db.Column(db.Integer, nullable=True)
+    questionNum = db.Column(db.Integer, nullable=True)
+    startTime = db.Column(db.DateTime, nullable = True)
+    endTime = db.Column(db.DateTime, nullable = True)
+
+    def __init__(self, questionNum, sessionID=None, startTime=None, endTime=None):
+        self.questionStatusKey = db.Column(db.Integer, primary_key = True)
+        self.sessionID = sessionID
+        self.questionNum = questionNum
+        self.startTime  = startTime
+        self.endTime = endTime
