@@ -23,16 +23,21 @@ class Post(db.Model):
         self.date_posted = datetime.datetime.now()
 
 
+#refers to questions asked by students
 class Question(db.Model):
     __tablename__ = 'questions'
 
     qid = db.Column(db.Integer, primary_key = True)
+    sessionid = db.Column(db.Integer)
     ques = db.Column(db.String, nullable = True)
+    upvotes = db.Column(db.Integer, nullable = False)
     date_posted = db.Column(db.DateTime, nullable = True)
 
-    def __init__(self, ques):
+    def __init__(self, ques, sessionid, upvotes=0):
         self.ques = ques
+        self.sessionid = sessionid
         self.date_posted = datetime.datetime.now()
+        self.upvotes = upvotes
 
 class Session(db.Model):
     __tablename__ = 'session'
