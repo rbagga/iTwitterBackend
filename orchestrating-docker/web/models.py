@@ -34,6 +34,17 @@ class Question(db.Model):
         self.ques = ques
         self.date_posted = datetime.datetime.now()
 
+class Upvotes(db.Model):
+    __tablename__ = 'upvotes'
+
+    StNetID = db.Column(db.String, primary_key = True)
+    QuId = db.Column(db.Integer, nullable = False)
+    
+    def __init__(self, StNetID, QuId):
+        self.StNetID = ques
+        self.QuId = QuId
+
+
 class Session(db.Model):
     __tablename__ = 'session'
 
