@@ -18,7 +18,7 @@ class Post(db.Model):
         self.date_posted = datetime.datetime.now()
 
 
-class Question(db.Model):
+class Questions(db.Model):
     __tablename__ = 'questions'
 
     qid = db.Column(db.Integer, primary_key = True)
@@ -29,7 +29,7 @@ class Question(db.Model):
         self.ques = ques
         self.date_posted = datetime.datetime.now()
 
-class Question(db.Model):
+class Sessionid(db.Model):
     __tablename__ = 'sessionid'
 
     sessionId = db.Column(db.Integer, primary_key = True)
@@ -46,7 +46,7 @@ class Question(db.Model):
         self.term = term
         self.status = status
 
-class Question(db.Model):
+class Responses(db.Model):
     __tablename__ = 'responses'
 
     Netid = db.Column(db.String, primary_key = True)
@@ -59,6 +59,15 @@ class Question(db.Model):
         self.session = session
         self.timespam = timespam
 
+class UpVotes(db.Model):
+    __tablename__ = 'upvotes'
+
+    StNetid = db.Column(db.String, primary_key = True)
+    quesId = db.Column(db.String, nullable = True)
+    
+    def __init__(self, StNetid, quesId):
+        self.StNetid = StNetid
+        self.quesId = quesId
        
 class InstrQuestion(db.Model):
     __tablename__ = 'instrquestions'
