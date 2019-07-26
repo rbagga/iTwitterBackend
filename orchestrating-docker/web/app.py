@@ -34,6 +34,31 @@ class StudentQuestionPost(Resource):
         # query = text('INSERT into questions(ques) VALUES (:question)')
         q_tuple = Question(question)
         db.session.add(q_tuple)
+
+@q_api.route('/<netid>/<qid>')
+class Upvotes(Resource):
+    #@api.expect(post_question_model)
+    #@api.doc(body=post_question_model)
+    def put(self, netid, qid):
+
+            votes_query = text('SELECT upvotes FROM questions WHERE qid = :qid')
+            response = db.engine.execute(votes_query, qid=qid).scalar()
+            '''if (netid, qid) in upvotes table:'''
+            new_votes = response + 1
+            # add (netid, qid) to upvotes table
+            '''else'''
+            # new_votes = response - 1
+            # remove (netid, qid) to upvotes table
+            update_query = text('UPDATE questions SET upvotes = :new_val WHERE qid=:qid')
+            db.engine.execute(update_query, new_val = new_votes, qid = qid)
+
+        #else return error
+
+
+    # def downvote(self, qid):
+        # if (netid, qid) in upvotes table
+
+
 # count_total_question = -1
 #
 # @app.route('/', methods=['GET', 'POST'])
