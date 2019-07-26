@@ -4,7 +4,7 @@ from flask import request, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_restplus import Api, Namespace, abort, Resource, fields, marshal_with
 from config import BaseConfig
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select, text, exists, and_
 
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
@@ -34,23 +34,32 @@ class StudentQuestionPost(Resource):
         # query = text('INSERT into questions(ques) VALUES (:question)')
         q_tuple = Question(question)
         db.session.add(q_tuple)
+        db.session.commit()
 
 @q_api.route('/<netid>/<qid>')
-class Upvotes(Resource):
+class UpvotesPost(Resource):
     #@api.expect(post_question_model)
     #@api.doc(body=post_question_model)
     def put(self, netid, qid):
-
+            #ADD VALIDATION IF QID EXISTS (try catch)
             votes_query = text('SELECT upvotes FROM questions WHERE qid = :qid')
             response = db.engine.execute(votes_query, qid=qid).scalar()
-            '''if (netid, qid) in upvotes table:'''
-            new_votes = response + 1
-            # add (netid, qid) to upvotes table
-            '''else'''
-            # new_votes = response - 1
-            # remove (netid, qid) to upvotes table
+            print(response)
+            new_votes = 0
+            already_upvoted = db.session.query(exists().where(and_(Upvotes.netid == netid, Upvotes.qid == qid))).scalar()
+
+            if already_upvoted:
+                new_votes = response + 1
+                new_upvote = Upvotes(netid, qid)
+                db.session.add(new_upvote)
+                db.session.commit()
+            else:
+                new_votes = response - 1
+                d = db.session.delete().where(and_(Upvotes.netid == netid, Upvotes.qid == qid))
+                d.execute()
             update_query = text('UPDATE questions SET upvotes = :new_val WHERE qid=:qid')
             db.engine.execute(update_query, new_val = new_votes, qid = qid)
+
 
         #else return error
 
