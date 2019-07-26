@@ -10,14 +10,15 @@ app = Flask(__name__)
 app.config.from_object(BaseConfig)
 db = SQLAlchemy(app)
 api = Api(app)
-q_api = Namespace('student question', description = 'question operations')
-iq_api = Namespace('instructor question', description = 'instructor question operations')
+q_api = Namespace('student_question', description = 'student question operations')
+iq_api = Namespace('instructor_question', description = 'instructor question operations')
 
 from models import *
 
 api.add_namespace(q_api)
+
 get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
-post_question_model = api.model('question', {'question': fields.String})
+post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
 
 @q_api.route('/')
 class StudentQuestionPost(Resource):
@@ -31,8 +32,10 @@ class StudentQuestionPost(Resource):
     def post(self):
         params = api.payload
         question = params.pop("question")
+        sessionid = params.pop("sessionid")
+        upvotes = params.pop("upvotes")
         # query = text('INSERT into questions(ques) VALUES (:question)')
-        q_tuple = Question(question)
+        q_tuple = Question(question, sessionid, upvotes)
         db.session.add(q_tuple)
         db.session.commit()
 
