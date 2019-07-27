@@ -44,37 +44,25 @@ class StudentQuestionPost(Resource):
 
 @q_api.route('/<netid>/<qid>')
 class UpvotesPost(Resource):
-    #@api.expect(post_question_model)
-    #@api.doc(body=post_question_model)
     def put(self, netid, qid):
             #ADD VALIDATION IF QID EXISTS (try catch)
+            netid_1 = netid
+            qid_1 = qid
+            print(netid_1)
             votes_query = text('SELECT upvotes FROM questions WHERE qid = :qid')
             response = db.engine.execute(votes_query, qid=qid).scalar()
-            print(response)
             new_votes = 0
-            already_upvoted = db.session.query(exists().where(and_(Upvotes.netid == netid, Upvotes.qid == qid))).scalar()
-
-            #x = Upvotes.query.filter_by(and_(Upvotes.netid==netid, Upvotes.qid == qid)).scalar()
-
-            print(x)
-            print(already_upvoted)
+            # already_upvoted = db.session.query(exists().where(and_(Upvotes.netid == netid_1, Upvotes.qid == qid_1)))
+            exists_query = text('SELECT netid from upvotes WHERE EXISTS (SELECT netid from upvotes WHERE netid = :netid AND qid = :qid)')
+            existing = db.engine.execute(exists_query, netid = netid, qid = qid).fetchall()
+            already_upvoted = (len(existing) > 0)
             if (not already_upvoted):
-                print("HELLLLOOOO")
-                print("HELLLLOOOO")
-                print("HELLLLOOOO")
-                print("HELLLLOOOO")
-                print("HELLLLOOOO")
-                print("not already upvoted")
                 new_votes = response + 1
                 new_upvote = Upvotes(netid, qid)
                 db.session.add(new_upvote)
                 db.session.commit()
             else:
                 new_votes = response - 1
-                # to_delete = db.session.query(where(and_(Upvotes.netid == netid, Upvotes.qid == qid)))
-                #to_delete = Upvotes.query.filter_by(netid=netid).first()
-                #d = db.session.delete(to_delete)
-                #d.execute()
                 delete_query = text('DELETE FROM upvotes WHERE netid = :netid')
                 db.engine.execute(delete_query, netid = netid)
             update_query = text('UPDATE questions SET upvotes = :new_val WHERE qid=:qid')
@@ -144,7 +132,7 @@ class UpvotesPost(Resource):
 # def update_record():
 #     if request.method == "POST":
 #         qid = request.form['qid']
-#         new_question = request.form['new_question']
+#         new_question = request.form['new_qudestion']
 #         updated_question = Question.query.get(qid)
 #         updated_question.ques = new_question
 #         updated_question.date_posted = datetime.datetime.now()
