@@ -54,7 +54,17 @@ class UpvotesPost(Resource):
             new_votes = 0
             already_upvoted = db.session.query(exists().where(and_(Upvotes.netid == netid, Upvotes.qid == qid))).scalar()
 
+            #x = Upvotes.query.filter_by(and_(Upvotes.netid==netid, Upvotes.qid == qid)).scalar()
+
+            print(x)
+            print(already_upvoted)
             if (not already_upvoted):
+                print("HELLLLOOOO")
+                print("HELLLLOOOO")
+                print("HELLLLOOOO")
+                print("HELLLLOOOO")
+                print("HELLLLOOOO")
+                print("not already upvoted")
                 new_votes = response + 1
                 new_upvote = Upvotes(netid, qid)
                 db.session.add(new_upvote)
