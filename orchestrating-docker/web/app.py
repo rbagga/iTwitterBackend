@@ -1,5 +1,6 @@
 # app.py
-from flask import Flask, jsonify
+# import json
+from flask import Flask, jsonify, json
 from flask import request, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_restplus import Api, Namespace, abort, Resource, fields, marshal_with
@@ -25,8 +26,10 @@ class StudentQuestionPost(Resource):
     def get(self):
         query = text('SELECT * from questions')
         response = db.engine.execute(query).fetchall()
-        return jsonify({response: [dict(row) for row in response]})
-
+        print(response)
+        #return jsonify({response: [dict(row) for row in json.dumps(response)]})
+        #return json.dumps(response)
+        return json.dumps([dict(r) for r in response])
     @api.expect(post_question_model)
     @api.doc(body=post_question_model)
     def post(self):
@@ -51,15 +54,19 @@ class UpvotesPost(Resource):
             new_votes = 0
             already_upvoted = db.session.query(exists().where(and_(Upvotes.netid == netid, Upvotes.qid == qid))).scalar()
 
-            if already_upvoted:
+            if (not already_upvoted):
                 new_votes = response + 1
                 new_upvote = Upvotes(netid, qid)
                 db.session.add(new_upvote)
                 db.session.commit()
             else:
                 new_votes = response - 1
-                d = db.session.delete().where(and_(Upvotes.netid == netid, Upvotes.qid == qid))
-                d.execute()
+                # to_delete = db.session.query(where(and_(Upvotes.netid == netid, Upvotes.qid == qid)))
+                #to_delete = Upvotes.query.filter_by(netid=netid).first()
+                #d = db.session.delete(to_delete)
+                #d.execute()
+                delete_query = text('DELETE FROM upvotes WHERE netid = :netid')
+                db.engine.execute(delete_query, netid = netid)
             update_query = text('UPDATE questions SET upvotes = :new_val WHERE qid=:qid')
             db.engine.execute(update_query, new_val = new_votes, qid = qid)
 
