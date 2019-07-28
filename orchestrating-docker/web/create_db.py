@@ -203,7 +203,7 @@ def create_concurrency_triggers(): ##########################
         RETURNS  trigger AS $$
         BEGIN
             IF OLD.writeTS>n OR OLD.readTS>n THEN
-            ####################ABORT;
+            RAISE EXCEPTION 'UPDATE concurrency: row has been read or written to by a more recent transaction';
             END IF;
             NEW.writeTS = n;
             RETURN NEW;
@@ -215,7 +215,7 @@ def create_concurrency_triggers(): ##########################
         RETURNS  trigger AS $$
         BEGIN
             IF OLD.writeTS>n THEN
-            ####################ABORT;
+            RAISE EXCEPTION 'READ concurrency: row has been written to by a more recent transaction with timestamp %', OLD.writeTS;
             END IF;
             NEW.readTS = n;
             RETURN NEW;
@@ -224,7 +224,7 @@ def create_concurrency_triggers(): ##########################
         """,
         """
         CREATE TRIGGER insert_timestamp
-        AFTER INSERT
+        BEFORE INSERT
         ON ################################################### tablename
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_insert_timestamp(n);   ######################## how to pass timestamp of current transaction
