@@ -3,6 +3,20 @@
 from sqlalchemy import text
 from app import db
 
+
+# how to restart a transaciton
+# while True:
+#   try:
+#        ts = startTransaction()
+#        all the queries, setting readTS or writeTS to ts
+#        endTransaction()
+#   except:
+#        pass
+#   else:
+#        break
+
+
+
 # Lock the timestamp table while we get and increment the next available timestamp.
 # The timestamp MUST be unique for every transaction.
 def getTimestamp():

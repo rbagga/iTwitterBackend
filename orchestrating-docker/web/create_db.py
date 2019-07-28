@@ -197,27 +197,25 @@ def create_concurrency_triggers(): ##########################
             RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
-        """ ,
+        """ ,##### don't actually need this one
         """
-        CREATE OR REPLACE FUNCTION trigger_update_timestamp(n integer)
+        CREATE OR REPLACE FUNCTION trigger_update_timestamp()
         RETURNS  trigger AS $$
         BEGIN
-            IF OLD.writeTS>n OR OLD.readTS>n THEN
+            IF OLD.writeTS>NEW.writeTS OR OLD.readTS>NEW.writeTS THEN
             RAISE EXCEPTION 'UPDATE concurrency: row has been read or written to by a more recent transaction';
             END IF;
-            NEW.writeTS = n;
             RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
         """ ,
         """
-        CREATE OR REPLACE FUNCTION trigger_read_timestamp(n integer)
+        CREATE OR REPLACE FUNCTION trigger_read_timestamp()
         RETURNS  trigger AS $$
         BEGIN
-            IF OLD.writeTS>n THEN
+            IF OLD.writeTS>NEW.readTS THEN
             RAISE EXCEPTION 'READ concurrency: row has been written to by a more recent transaction with timestamp %', OLD.writeTS;
             END IF;
-            NEW.readTS = n;
             RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
@@ -227,15 +225,15 @@ def create_concurrency_triggers(): ##########################
         BEFORE INSERT
         ON ################################################### tablename
         FOR EACH ROW
-        EXECUTE PROCEDURE trigger_insert_timestamp(n);   ######################## how to pass timestamp of current transaction
+        EXECUTE PROCEDURE trigger_insert_timestamp(n);
         $$ LANGUAGE plpgsql;
-        """,
+        """,##### don't actually need this one
         """
         CREATE TRIGGER update_timestamp
         BEFORE UPDATE
         ON ################################################### tablename
         FOR EACH ROW
-        EXECUTE PROCEDURE trigger_update_timestamp(n);   ######################## how to pass timestamp of current transaction
+        EXECUTE PROCEDURE trigger_update_timestamp();
         $$ LANGUAGE plpgsql;
         """,
         """
@@ -243,7 +241,7 @@ def create_concurrency_triggers(): ##########################
         BEFORE UPDATE ############fix for reads
         ON ################################################### tablename
         FOR EACH ROW
-        EXECUTE PROCEDURE trigger_get_timestamp(n);   ######################## how to pass timestamp of current transaction
+        EXECUTE PROCEDURE trigger_get_timestamp();
         $$ LANGUAGE plpgsql;
         """
     )
