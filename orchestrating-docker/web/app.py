@@ -10,8 +10,15 @@ app = Flask(__name__)
 app.config.from_object(BaseConfig)
 db = SQLAlchemy(app)
 api = Api(app)
+
 q_api = Namespace('student question', description = 'question operations')
-iq_api = Namespace('instructor question', description = 'instructor question operations')
+
+s_api = Namespace('Session Information', description = 'question session information operations')
+
+en_api = Namespace('Insert Questions', description = 'Insert a question operation')
+
+iclkres_api = Namespace('I clicker reponse', description = 'Insert a reponse operation')
+
 
 from models import *
 
@@ -19,21 +26,107 @@ api.add_namespace(q_api)
 get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
 post_question_model = api.model('question', {'question': fields.String})
 
-@q_api.route('/')
-class StudentQuestionPost(Resource):
-    def get(self):
-        query = text('SELECT * from questions')
-        response = db.engine.execute(query).fetchall()
-        return jsonify({response: [dict(row) for row in response]})
+# api.add_namespace(s_api)
+# get_session_model = api.model('professor', {'professor': fields.String(description = 'professor ID to get'), 
+#                                 'classId': fields.String(description = 'class ID to get'), 
+#                                 'term': fields.String(description = 'term to get')})
+# post_session_model = api.model('professor', {'professor': fields.String, 
+#                                 'term': fields.String,
+#                                 'classId': fields.String}
+#                                 )
+# @s_api.route('/')
+# class sessioninformation(Resource):
+#     def get(self):
+#         classid = text('SELECT * from session')
+#         response = db.engine.execute(classid).fetchall()
+#         return jsonify({response: [dict(row) for row in response]})
 
-    @api.expect(post_question_model)
-    @api.doc(body=post_question_model)
+#     @api.expect(post_session_model)
+#     @api.doc(body=post_session_model)
+#     def post(self):
+#         params = api.payload
+#         professor = params.pop("professor")
+#         term = params.pop("term")
+#         classID = params.pop("classId")
+#         q_tuple = Session(term, professor, classID)
+#         db.session.add(q_tuple)
+#         db.session.commit()
+
+api.add_namespace(en_api)
+get_enterquestion_model = api.model('iqid', {'QuestionNumber': fields.Integer(description = 'Question number to get')})
+post_enterquestion_model = api.model('Question', {'Question': fields.String, 
+                                'optionA': fields.String,
+                                'answer': fields.String,
+                                'lecturenumber': fields.Integer
+                                }
+                                )
+@en_api.route('/')
+class Insertquestion(Resource):
+    def get(self):
+        query = text('SELECT ques from instrquestions')
+        response = db.engine.execute(query).fetchall()
+        return jsonify({'response' : [dict(row) for row in response]})
+
+    @api.expect(post_enterquestion_model)
+    @api.doc(body=post_enterquestion_model)
     def post(self):
         params = api.payload
-        question = params.pop("question")
-        # query = text('INSERT into questions(ques) VALUES (:question)')
-        q_tuple = Question(question)
+        ques = params.pop("Question")
+        optionA = params.pop("optionA")
+        answer = params.pop("answer")
+        sessionId = params.pop("lecturenumber")
+        q_tuple = InstrQuestion(ques, answer, optionA, sessionId)
         db.session.add(q_tuple)
+        db.session.commit()
+
+api.add_namespace(iclkres_api)
+get_iclickerreponse_model = api.model('reponse', {'Response Number': fields.Integer(description = 'Question number to get')})
+post_iclickerreponse_model = api.model('Response', {'Netid': fields.String, 
+                                'sessionId': fields.Integer,
+                                'questionnum': fields.Integer,
+                                'response': fields.String
+                                }
+                                )
+@iclkres_api.route('/')
+class Iclickerreponse(Resource):
+    def get(self):
+        query = text('SELECT reponse from studentquestionanswer')
+        response = db.engine.execute(query).fetchall()
+        return jsonify({'response' : [dict(row) for row in response]})
+
+    @api.expect(post_iclickerreponse_model)
+    @api.doc(body=post_iclickerreponse_model)
+    def post(self):
+        params = api.payload
+        netid = params.pop("Netid")
+        sessionId = params.pop("sessionId")
+        questionId = params.pop("questionnum")
+        studentreponse = params.pop("response")
+        q_tuple = IclickerReponse(netid, sessionId, questionId, studentreponse)
+        db.session.add(q_tuple)
+        db.session.commit()
+
+
+
+
+# @q_api.route('/')
+# class StudentQuestionPost(Resource):
+#     def get(self):
+#         query = text('SELECT * from questions')
+#         response = db.engine.execute(query).fetchall()
+#         return jsonify({response: [dict(row) for row in response]})
+
+#     @api.expect(post_question_model)
+#     @api.doc(body=post_question_model)
+#     def post(self):
+#         params = api.payload
+#         question = params.pop("question")
+#         # query = text('INSERT into questions(ques) VALUES (:question)')
+#         q_tuple = Question(question)
+#         db.session.add(q_tuple)
+
+
+
 # count_total_question = -1
 #
 # @app.route('/', methods=['GET', 'POST'])
