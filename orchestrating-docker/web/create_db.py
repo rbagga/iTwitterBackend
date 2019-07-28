@@ -190,58 +190,32 @@ def create_concurrency_triggers(): ##########################
     """ create concurrency triggers for all sql tables  """
     commands = (
         """
-        CREATE OR REPLACE FUNCTION trigger_insert_timestamp(n integer)
-        RETURNS  trigger AS $$
-        BEGIN
-            NEW.writeTS = n;
-            RETURN NEW;
-        END;
-        $$ LANGUAGE plpgsql;
-        """ ,##### don't actually need this one
-        """
         CREATE OR REPLACE FUNCTION trigger_update_timestamp()
         RETURNS  trigger AS $$
         BEGIN
+            IF NEW.readTS IS NULL THEN
             IF OLD.writeTS>NEW.writeTS OR OLD.readTS>NEW.writeTS THEN
             RAISE EXCEPTION 'UPDATE concurrency: row has been read or written to by a more recent transaction';
+            ELSE
+            NEW.readTS = OLD.readTS;
             END IF;
-            RETURN NEW;
-        END;
-        $$ LANGUAGE plpgsql;
-        """ ,
-        """
-        CREATE OR REPLACE FUNCTION trigger_read_timestamp()
-        RETURNS  trigger AS $$
-        BEGIN
+            ELSEIF NEW.writeTS IS NULL THEN
             IF OLD.writeTS>NEW.readTS THEN
             RAISE EXCEPTION 'READ concurrency: row has been written to by a more recent transaction with timestamp %', OLD.writeTS;
+            ELSE
+            NEW.writeTS = OLD.writeTS;
+            END IF;
             END IF;
             RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
         """,
-        """
-        CREATE TRIGGER insert_timestamp
-        BEFORE INSERT
-        ON ################################################### tablename
-        FOR EACH ROW
-        EXECUTE PROCEDURE trigger_insert_timestamp(n);
-        $$ LANGUAGE plpgsql;
-        """,##### don't actually need this one
         """
         CREATE TRIGGER update_timestamp
         BEFORE UPDATE
         ON ################################################### tablename
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_update_timestamp();
-        $$ LANGUAGE plpgsql;
-        """,
-        """
-        CREATE TRIGGER get_timestamp
-        BEFORE UPDATE ############fix for reads
-        ON ################################################### tablename
-        FOR EACH ROW
-        EXECUTE PROCEDURE trigger_get_timestamp();
         $$ LANGUAGE plpgsql;
         """
     )

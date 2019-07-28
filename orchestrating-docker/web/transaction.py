@@ -9,12 +9,17 @@ from app import db
 #   try:
 #        ts = startTransaction()
 #        all the queries, setting readTS or writeTS to ts
+#             before reads, update the read TS of the exact same query second, first do the read query
+#             example: read:
+#               select from Bags that are red
+#               update Bags that are red with readTS = ts, writeTS = null
+#             example: write:
+#               update Bags that are red with writeTS = ts, readTS = null
 #        endTransaction()
 #   except:
 #        pass
 #   else:
 #        break
-
 
 
 # Lock the timestamp table while we get and increment the next available timestamp.
@@ -24,7 +29,6 @@ def getTimestamp():
     db.engine.execute(begin)
     setTS = text('SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED')
     db.engine.execute(setTS)
-
 
     lockTimestamp = text('LOCK TABLE timestamp IN ACCESS EXCLUSIVE')
     db.engine.execute(lockTimestamp)
