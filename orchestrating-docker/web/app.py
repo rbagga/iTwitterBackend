@@ -1,10 +1,11 @@
 # app.py
-from flask import Flask, jsonify
+# import json
+from flask import Flask, jsonify, json
 from flask import request, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_restplus import Api, Namespace, abort, Resource, fields, marshal_with
 from config import BaseConfig
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select, text, exists, and_
 
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
@@ -19,42 +20,45 @@ en_api = Namespace('Insert Questions', description = 'Insert a question operatio
 
 iclkres_api = Namespace('I clicker reponse', description = 'Insert a reponse operation')
 
+q_api = Namespace('student_question', description = 'student question operations')
+iq_api = Namespace('instructor_question', description = 'instructor question operations')
 
 from models import *
 
 api.add_namespace(q_api)
+
 get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
-post_question_model = api.model('question', {'question': fields.String})
+post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
 
-# api.add_namespace(s_api)
-# get_session_model = api.model('professor', {'professor': fields.String(description = 'professor ID to get'), 
-#                                 'classId': fields.String(description = 'class ID to get'), 
-#                                 'term': fields.String(description = 'term to get')})
-# post_session_model = api.model('professor', {'professor': fields.String, 
-#                                 'term': fields.String,
-#                                 'classId': fields.String}
-#                                 )
-# @s_api.route('/')
-# class sessioninformation(Resource):
-#     def get(self):
-#         classid = text('SELECT * from session')
-#         response = db.engine.execute(classid).fetchall()
-#         return jsonify({response: [dict(row) for row in response]})
+api.add_namespace(s_api)
+get_session_model = api.model('professor', {'professor': fields.String(description = 'professor ID to get'),
+                                'classId': fields.String(description = 'class ID to get'),
+                                'term': fields.String(description = 'term to get')})
+post_session_model = api.model('professor', {'professor': fields.String,
+                                'term': fields.String,
+                                'classId': fields.String}
+                                )
+@s_api.route('/')
+class sessioninformation(Resource):
+    def get(self):
+        classid = text('SELECT * from session')
+        response = db.engine.execute(classid).fetchall()
+        return jsonify({response: [dict(row) for row in response]})
 
-#     @api.expect(post_session_model)
-#     @api.doc(body=post_session_model)
-#     def post(self):
-#         params = api.payload
-#         professor = params.pop("professor")
-#         term = params.pop("term")
-#         classID = params.pop("classId")
-#         q_tuple = Session(term, professor, classID)
-#         db.session.add(q_tuple)
-#         db.session.commit()
+    @api.expect(post_session_model)
+    @api.doc(body=post_session_model)
+    def post(self):
+        params = api.payload
+        professor = params.pop("professor")
+        term = params.pop("term")
+        classID = params.pop("classId")
+        q_tuple = Session(term, professor, classID)
+        db.session.add(q_tuple)
+        db.session.commit()
 
 api.add_namespace(en_api)
 get_enterquestion_model = api.model('iqid', {'QuestionNumber': fields.Integer(description = 'Question number to get')})
-post_enterquestion_model = api.model('Question', {'Question': fields.String, 
+post_enterquestion_model = api.model('Question', {'Question': fields.String,
                                 'optionA': fields.String,
                                 'answer': fields.String,
                                 'lecturenumber': fields.Integer
@@ -81,7 +85,7 @@ class Insertquestion(Resource):
 
 api.add_namespace(iclkres_api)
 get_iclickerreponse_model = api.model('reponse', {'Response Number': fields.Integer(description = 'Question number to get')})
-post_iclickerreponse_model = api.model('Response', {'Netid': fields.String, 
+post_iclickerreponse_model = api.model('Response', {'Netid': fields.String,
                                 'sessionId': fields.Integer,
                                 'questionnum': fields.Integer,
                                 'response': fields.String
@@ -125,6 +129,54 @@ class Iclickerreponse(Resource):
 #         q_tuple = Question(question)
 #         db.session.add(q_tuple)
 
+        print(response)
+        #return jsonify({response: [dict(row) for row in json.dumps(response)]})
+        #return json.dumps(response)
+        return json.dumps([dict(r) for r in response])
+    @api.expect(post_question_model)
+    @api.doc(body=post_question_model)
+    def post(self):
+        params = api.payload
+        question = params.pop("question")
+        sessionid = params.pop("sessionid")
+        upvotes = params.pop("upvotes")
+        # query = text('INSERT into questions(ques) VALUES (:question)')
+        q_tuple = Question(question, sessionid, upvotes)
+        db.session.add(q_tuple)
+        db.session.commit()
+
+@q_api.route('/<netid>/<qid>')
+class UpvotesPost(Resource):
+    def put(self, netid, qid):
+            #ADD VALIDATION IF QID EXISTS (try catch)
+            netid_1 = netid
+            qid_1 = qid
+            print(netid_1)
+            votes_query = text('SELECT upvotes FROM questions WHERE qid = :qid')
+            response = db.engine.execute(votes_query, qid=qid).scalar()
+            new_votes = 0
+            # already_upvoted = db.session.query(exists().where(and_(Upvotes.netid == netid_1, Upvotes.qid == qid_1)))
+            exists_query = text('SELECT netid from upvotes WHERE EXISTS (SELECT netid from upvotes WHERE netid = :netid AND qid = :qid)')
+            existing = db.engine.execute(exists_query, netid = netid, qid = qid).fetchall()
+            already_upvoted = (len(existing) > 0)
+            if (not already_upvoted):
+                new_votes = response + 1
+                new_upvote = Upvotes(netid, qid)
+                db.session.add(new_upvote)
+                db.session.commit()
+            else:
+                new_votes = response - 1
+                delete_query = text('DELETE FROM upvotes WHERE netid = :netid')
+                db.engine.execute(delete_query, netid = netid)
+            update_query = text('UPDATE questions SET upvotes = :new_val WHERE qid=:qid')
+            db.engine.execute(update_query, new_val = new_votes, qid = qid)
+
+
+        #else return error
+
+
+    # def downvote(self, qid):
+        # if (netid, qid) in upvotes table
 
 
 # count_total_question = -1
@@ -183,7 +235,7 @@ class Iclickerreponse(Resource):
 # def update_record():
 #     if request.method == "POST":
 #         qid = request.form['qid']
-#         new_question = request.form['new_question']
+#         new_question = request.form['new_qudestion']
 #         updated_question = Question.query.get(qid)
 #         updated_question.ques = new_question
 #         updated_question.date_posted = datetime.datetime.now()

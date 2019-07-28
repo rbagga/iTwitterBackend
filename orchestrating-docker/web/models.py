@@ -23,28 +23,44 @@ class Post(db.Model):
         self.date_posted = datetime.datetime.now()
 
 
+
+#refers to questions asked by students
 class Question(db.Model):
     __tablename__ = 'questions'
 
     qid = db.Column(db.Integer, primary_key = True)
+    sessionid = db.Column(db.Integer)
     ques = db.Column(db.String, nullable = True)
+    upvotes = db.Column(db.Integer, nullable = False)
     date_posted = db.Column(db.DateTime, nullable = True)
 
-    def __init__(self, ques):
+    def __init__(self, ques, sessionid, upvotes=0):
         self.ques = ques
+        self.sessionid = sessionid
         self.date_posted = datetime.datetime.now()
+        self.upvotes = upvotes
+
+# class Question(db.Model):
+#     __tablename__ = 'questions'
+#
+#     qid = db.Column(db.Integer, primary_key = True)
+#     ques = db.Column(db.String, nullable = True)
+#     date_posted = db.Column(db.DateTime, nullable = True)
+#
+#     def __init__(self, ques):
+#         self.ques = ques
+#         self.date_posted = datetime.datetime.now()
+
 
 class Upvotes(db.Model):
     __tablename__ = 'upvotes'
 
-    stnetid = db.Column(db.String, primary_key = True)
-    quid = db.Column(db.Integer, nullable = False)
-    
-    def __init__(self, StNetID, quid):
-        self.stnetid = stnetid
-        self.quid = quid
+    netid = db.Column(db.String, primary_key = True)
+    qid = db.Column(db.Integer, nullable = False)
 
-
+    def __init__(self, netid, qid):
+        self.netid = netid
+        self.qid = qid
 class Session(db.Model):
     __tablename__ = 'session'
     sessionsId = db.Column(db.Integer, primary_key = True)
