@@ -186,6 +186,94 @@ def insert_faculty(login_list):
         if conn is not None:
             conn.close()
 
+def create_concurrency_triggers(): ##########################
+    """ create concurrency triggers for all sql tables  """
+    commands = (
+        """
+        CREATE OR REPLACE FUNCTION trigger_insert_timestamp(n integer)
+        RETURNS  trigger AS $$
+        BEGIN
+            NEW.writeTS = n;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+        """ ,
+        """
+        CREATE OR REPLACE FUNCTION trigger_update_timestamp(n integer)
+        RETURNS  trigger AS $$
+        BEGIN
+            IF OLD.writeTS>n OR OLD.readTS>n THEN
+            ####################ABORT;
+            END IF;
+            NEW.writeTS = n;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+        """ ,
+        """
+        CREATE OR REPLACE FUNCTION trigger_read_timestamp(n integer)
+        RETURNS  trigger AS $$
+        BEGIN
+            IF OLD.writeTS>n THEN
+            ####################ABORT;
+            END IF;
+            NEW.readTS = n;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+        """,
+        """
+        CREATE TRIGGER insert_timestamp
+        AFTER INSERT
+        ON ################################################### tablename
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_insert_timestamp(n);   ######################## how to pass timestamp of current transaction
+        $$ LANGUAGE plpgsql;
+        """,
+        """
+        CREATE TRIGGER update_timestamp
+        BEFORE UPDATE
+        ON ################################################### tablename
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_update_timestamp(n);   ######################## how to pass timestamp of current transaction
+        $$ LANGUAGE plpgsql;
+        """,
+        """
+        CREATE TRIGGER get_timestamp
+        BEFORE UPDATE ############fix for reads
+        ON ################################################### tablename
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_get_timestamp(n);   ######################## how to pass timestamp of current transaction
+        $$ LANGUAGE plpgsql;
+        """
+    )
+
+    conn = None
+    try:
+        params = BaseConfig()
+        host_ = params.DB_SERVICE
+        port_ = params.DB_PORT
+        database_ = params.DB_NAME
+        user_ = params.DB_USER
+        password_ = params.DB_PASS
+        conn = psycopg2.connect(host=host_, database=database_, user=user_, password=password_, port=port_)
+
+        cur = conn.cursor()
+
+        for command in commands:
+                cur.execute(command)
+
+        cur.close()
+        conn.commit()
+
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+    finally:
+        if conn is not None:
+            conn.close()
+
+
 
 filename = 'ece_grad_students_netid_added.csv'
 login_list = sql_list(filename)
@@ -202,5 +290,6 @@ db.create_all()
 insert_login_details(login_list)
 insert_login_details(login_list_2)
 insert_students(login_list)
+####create_concurrency_triggers()
 # insert_faculty(login_list_2)
 #     create_tables()
