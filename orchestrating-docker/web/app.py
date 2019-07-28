@@ -15,8 +15,10 @@ q_api = Namespace('student_question', description = 'student question operations
 iq_api = Namespace('instructor_question', description = 'instructor question operations')
 
 from models import *
+from logger import *
 
 api.add_namespace(q_api)
+logger = loggerStart()
 
 get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
 post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
