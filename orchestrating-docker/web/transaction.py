@@ -8,14 +8,17 @@ from app import db
 def getTimestamp():
     begin = text('BEGIN')
     db.engine.execute(begin)
+    setTS = text('SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED')
+    db.engine.execute(setTS)
 
-    lockTimestamp = text('LOCK TABLE Timestamp IN ACCESS EXCLUSIVE')
+
+    lockTimestamp = text('LOCK TABLE timestamp IN ACCESS EXCLUSIVE')
     db.engine.execute(lockTimestamp)
 
-    queryTimestamp = text('SELECT NextAvailable FROM Timestamp')
+    queryTimestamp = text('SELECT nextAvailable FROM timestamp')
     ts = db.engine.execute(queryTimestamp).fetchone()
 
-    incTimestamp = text('UPDATE Timestamp SET NextAvailable = :tsInc')
+    incTimestamp = text('UPDATE timestamp SET nextAvailable = :tsInc')
     db.engine.execute(incTimestamp, tsInc = ts + 1)
 
     end = text('COMMIT')
@@ -26,6 +29,8 @@ def startTransaction():
     ts = getTimestamp()
     begin = text('BEGIN')
     db.engine.execute(begin)
+    setTS = text('SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED')
+    db.engine.execute(setTS)
     return ts
 
 

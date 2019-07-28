@@ -139,3 +139,12 @@ class QuestionStatus(db.Model):
         self.questionNum = questionNum
         self.startTime  = startTime
         self.endTime = endTime
+
+
+class Timestamp(db.Model):
+    __tablename__ = 'timestamp'
+
+    nextAvailable = db.Column(db.Integer, primary_key = True, default = 0)
+
+    def __init__(self, nextAvailable):
+        self.nextAvailable = nextAvailable
