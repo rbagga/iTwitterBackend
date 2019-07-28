@@ -117,6 +117,21 @@ class IclickerReponse(db.Model):
         self.studentreponse = studentreponse
         self.responsetimes = datetime.datetime.now()
 
+class Registration(db.Model):
+    __tablename__ = 'registrationtable'
+
+    registerid = db.Column(db.Integer, primary_key = True)
+    netid = db.Column(db.String, nullable = False)
+    classId = db.Column(db.String, nullable = False)
+    term = db.Column(db.String, nullable = False)
+    registertimes = db.Column(db.DateTime, nullable = False)
+
+    def __init__(self, netid, classId, term):
+        self.netid = netid
+        self.classId = classId
+        self.term = term
+        self.registertimes = datetime.datetime.now()
+
 
 class InstrQuestion(db.Model):
     __tablename__ = 'instrquestions'

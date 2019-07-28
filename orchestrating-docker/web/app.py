@@ -16,6 +16,9 @@ q_api = Namespace('student question', description = 'question operations')
 
 s_api = Namespace('Session Information', description = 'question session information operations')
 
+re_api = Namespace('Registeration Information', description = 'Registeration information operations')
+
+
 en_api = Namespace('Insert Questions', description = 'Insert a question operation')
 
 iclkres_api = Namespace('I clicker reponse', description = 'Insert a reponse operation')
@@ -56,6 +59,11 @@ class sessioninformation(Resource):
         db.session.add(q_tuple)
         db.session.commit()
 
+api.add_namespace(re_api)
+
+get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
+post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
+
 api.add_namespace(en_api)
 get_enterquestion_model = api.model('iqid', {'QuestionNumber': fields.Integer(description = 'Question number to get')})
 post_enterquestion_model = api.model('Question', {'Question': fields.String,
@@ -80,6 +88,28 @@ class Insertquestion(Resource):
         answer = params.pop("answer")
         sessionId = params.pop("lecturenumber")
         q_tuple = InstrQuestion(ques, answer, optionA, sessionId)
+        db.session.add(q_tuple)
+        db.session.commit()
+
+api.add_namespace(re_api)
+get_registration_model = api.model('netid', {'Netid': fields.String(description = 'Registration ID to get')})
+post_registration_model = api.model('Registration', {'netid': fields.String, 'classId' : fields.String, 'term': fields.String})
+
+@re_api.route('/')
+class StudentRegisteration(Resource):
+    def get(self):
+        query = text('SELECT * from registrationtable')
+        response = db.engine.execute(query).fetchall()
+        return jsonify({'response' : [dict(row) for row in response]})
+
+    @api.expect(post_registration_model)
+    @api.doc(body=post_registration_model)
+    def post(self):
+        params = api.payload
+        netid = params.pop("netid")
+        classId = params.pop("classId")
+        term = params.pop("term")
+        q_tuple = Registration(netid, classId, term)
         db.session.add(q_tuple)
         db.session.commit()
 
