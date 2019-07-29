@@ -13,10 +13,7 @@ def create_tables():
         """
         CREATE TABLE login_details (
         netid VARCHAR(255) PRIMARY KEY,
-        firstname VARCHAR(255) NOT NULL,
-        lastname VARCHAR(255) NOT NULL,
-        email VARCHAR(255),
-        UIN INTEGER DEFAULT NULL
+        role VARCHAR(255)
         )
         """ ,
         """
@@ -44,10 +41,10 @@ def create_tables():
         FOREIGN KEY (course_number, term)
         REFERENCES courses (course_number, term)
         ON DELETE CASCADE,
-        FOREIGN KEY(netid)
-        REFERENCES login_details(netid)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE
+        -- FOREIGN KEY(netid)
+        -- REFERENCES login_details(netid)
+        -- ON UPDATE CASCADE
+        -- ON DELETE CASCADE
         )
         """,
         """
@@ -58,10 +55,10 @@ def create_tables():
         email VARCHAR(255),
         dept VARCHAR(255) DEFAULT 'ECE',
         year VARCHAR(255) DEFAULT 'Grad',
-        FOREIGN KEY(netid)
-        REFERENCES login_details(netid)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE
+        -- FOREIGN KEY(netid)
+        -- REFERENCES login_details(netid)
+        -- ON UPDATE CASCADE
+        -- ON DELETE CASCADE
         )
         """,
         """
@@ -378,8 +375,8 @@ create_tables()
 #will not need this afterwards
 db.create_all()
 
-insert_login_details(login_list)
-insert_login_details(login_list_2)
+#insert_login_details(login_list)
+#insert_login_details(login_list_2)
 insert_students(login_list)
 insert_faculty(login_list_3)
 insert_courses(login_list_4)
