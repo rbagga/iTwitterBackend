@@ -9,7 +9,7 @@ from app import db
 #   try:
 #        ts = startTransaction()
 #        all the queries, setting readts or writets to ts
-#             before reads, update the read TS of the exact same query second, first do the read query
+#             after reads, update the read TS of the exact same query second, first do the read query
 #             example: read:
 #               select from Bags that are red
 #               update Bags set readts = ts, writets = NULL where <read query where>
@@ -17,19 +17,10 @@ from app import db
 #               update Bags set <write action>, writets = ts, readts = NULL where <write query where>
 #        endTransaction()
 #   except:
-#        pass
+#       rollback = text('ROLLBACK')
+#       db.engine.execute(rollback)
 #   else:
 #        break
-
-# def concurrencyStart():
-#     # set a single value in timestamp table to 0
-#     checkts = text('SELECT nextavailable FROM timestamp')
-#     if db.engine.execute(checkts).fetchone() is None:
-#       createts = text('INSERT INTO timestamp VALUES (0)')
-#       db.engine.execute(createts)
-#     else:
-#       resetts = text('UPDATE timestamp SET nextavailable=0')
-#       db.engine.execute(resetts)
 
 def getTimestamp():
     # Lock the timestamp table while we get and increment the next available timestamp.

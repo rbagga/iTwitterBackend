@@ -25,6 +25,7 @@ def create_tables():
         term VARCHAR(255),
         title VARCHAR(255),
         instructor VARCHAR(255),
+        piazza_nid VARCHAR(255) DEFAULT NULL,
         PRIMARY KEY(course_number, term)
         )
         """,
@@ -193,7 +194,7 @@ def create_concurrency_triggers(): ##########################
         CREATE OR REPLACE FUNCTION trigger_update_timestamp()
         RETURNS  trigger AS $$
         BEGIN
-            RAISE NOTICE 'Checking ability to read/write';
+            -- RAISE NOTICE 'Checking ability to read/write';
             IF NEW.readts IS NULL THEN
             RAISE NOTICE 'Checking for ability to write';
             IF OLD.writets>NEW.writets OR OLD.readts>NEW.writets THEN

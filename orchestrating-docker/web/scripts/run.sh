@@ -2,7 +2,7 @@
 # run from the orchestrating-docker dir
 
 docker-compose down
-> ./web/logs/app.log
+rm ./web/logs/app.log ./web/logs/psql.log > /dev/null 2>&1
 
 docker-compose run web /usr/local/bin/python ./create_db.py
 docker-compose up --build
