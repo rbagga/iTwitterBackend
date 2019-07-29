@@ -11,12 +11,6 @@ def create_tables():
     """ create tables in the PostgreSQL database"""
     commands = (
         """
-        CREATE TABLE login_details (
-        netid VARCHAR(255) PRIMARY KEY,
-        role VARCHAR(255)
-        )
-        """ ,
-        """
         CREATE TABLE courses (
         course_number VARCHAR(255),
         term VARCHAR(255),
@@ -107,31 +101,31 @@ def create_tables():
         if conn is not None:
             conn.close()
 
-def insert_login_details(login_list):
-     """ insert multiple vendors into the vendors table  """
-     sql = "INSERT INTO login_details(netid, firstname, lastname, email) VALUES(%s, %s, %s, %s)"
+# def insert_login_details(login_list):
+#      """ insert multiple vendors into the vendors table  """
+#      sql = "INSERT INTO login_details(netid, firstname, lastname, email) VALUES(%s, %s, %s, %s)"
 
-     conn = None
-     try:
-         params = BaseConfig()
-         host_ = params.DB_SERVICE
-         port_ = params.DB_PORT
-         database_ = params.DB_NAME
-         user_ = params.DB_USER
-         password_ = params.DB_PASS
-         conn = psycopg2.connect(host=host_, database=database_, user=user_, password=password_, port=port_)
+#      conn = None
+#      try:
+#          params = BaseConfig()
+#          host_ = params.DB_SERVICE
+#          port_ = params.DB_PORT
+#          database_ = params.DB_NAME
+#          user_ = params.DB_USER
+#          password_ = params.DB_PASS
+#          conn = psycopg2.connect(host=host_, database=database_, user=user_, password=password_, port=port_)
 
-         cur = conn.cursor()
-         cur.executemany(sql, login_list)
-         conn.commit()
-         cur.close()
+#          cur = conn.cursor()
+#          cur.executemany(sql, login_list)
+#          conn.commit()
+#          cur.close()
 
-     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+#      except (Exception, psycopg2.DatabaseError) as error:
+#         print(error)
 
-     finally:
-        if conn is not None:
-            conn.close()
+#      finally:
+#         if conn is not None:
+#             conn.close()
 
 def insert_students(login_list):
      """ insert multiple vendors into the vendors table  """
@@ -263,31 +257,31 @@ def insert_abdu(login_list):
         if conn is not None:
             conn.close()
 
-def insert_abdu_login(login_list):
-     """ insert multiple vendors into the vendors table  """
-     sql = "INSERT INTO login_details(netid, firstname, lastname, email) VALUES(%s, %s, %s, %s)"
+# def insert_abdu_login(login_list):
+#      """ insert multiple vendors into the vendors table  """
+#      sql = "INSERT INTO login_details(netid, firstname, lastname, email) VALUES(%s, %s, %s, %s)"
 
-     conn = None
-     try:
-         params = BaseConfig()
-         host_ = params.DB_SERVICE
-         port_ = params.DB_PORT
-         database_ = params.DB_NAME
-         user_ = params.DB_USER
-         password_ = params.DB_PASS
-         conn = psycopg2.connect(host=host_, database=database_, user=user_, password=password_, port=port_)
+#      conn = None
+#      try:
+#          params = BaseConfig()
+#          host_ = params.DB_SERVICE
+#          port_ = params.DB_PORT
+#          database_ = params.DB_NAME
+#          user_ = params.DB_USER
+#          password_ = params.DB_PASS
+#          conn = psycopg2.connect(host=host_, database=database_, user=user_, password=password_, port=port_)
 
-         cur = conn.cursor()
-         cur.executemany(sql, login_list)
-         conn.commit()
-         cur.close()
+#          cur = conn.cursor()
+#          cur.executemany(sql, login_list)
+#          conn.commit()
+#          cur.close()
 
-     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+#      except (Exception, psycopg2.DatabaseError) as error:
+#         print(error)
 
-     finally:
-        if conn is not None:
-            conn.close()
+#      finally:
+#         if conn is not None:
+#             conn.close()
 
 def create_concurrency_triggers():
     """ create concurrency triggers for all sql tables  """
@@ -381,7 +375,7 @@ insert_students(login_list)
 insert_faculty(login_list_3)
 insert_courses(login_list_4)
 login_list_7 = [('alawini', 'Abdussalam', 'Alawini', 'alawini@illinois.edu')]
-insert_abdu_login(login_list_7)
+#insert_abdu_login(login_list_7)
 login_list_6 = [('CS-411', '2019-su', 'Database System', 'Alawini, Abdussalam', 'alawini', 'jvl5vt2p49j72t')]
 insert_abdu_course(login_list_6)
 login_list_5 = [('alawini', 'Abdussalam', 'Alawini', 'alawini@illinois.edu', 'CS', '2019-su', 'CS-411')]

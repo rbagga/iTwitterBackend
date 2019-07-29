@@ -123,8 +123,8 @@ class createuser(Resource):
             if response is None:
                 if not piazzaLogin(netid, password):
                     abort(401, 'Login Failed: Unknown User')
-                #newStudent = text('INSERT INTO login_details VALUES (:netid, :firstname, :lastname)')
-                #db.engine.execute(newStudent, netid=netid, firstname=firstname, lastname=lastname)
+                # newStudent = text("INSERT INTO login_details VALUES (:netid, 'student')")
+                # db.engine.execute(newStudent, netid=netid)
                 newStudent = text('INSERT INTO students VALUES (:netid, :firstname, :lastname)')
                 db.engine.execute(newStudent, netid=netid, firstname=firstname, lastname=lastname)
                 db.session.commit()
@@ -137,6 +137,8 @@ class createuser(Resource):
         else:
             if not piazzaLogin(netid, password):
                 abort(401, 'Authentication Failed: Professor')
+            # newInstructor = text("INSERT INTO login_details VALUES (:netid, 'instructor')")
+            # db.engine.execute(newInstructor, netid=netid)
             updateInstructor = text('UPDATE faculty SET firstname=:firstname, lastname=:lastname WHERE netid=:netid')
             db.engine.execute(updateInstructor, netid=netid, firstname=firstname, lastname=lastname)
             db.session.commit()
