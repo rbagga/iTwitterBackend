@@ -7,6 +7,7 @@ from flask_restplus import Api, Namespace, abort, Resource, fields, marshal_with
 from config import BaseConfig
 from sqlalchemy import func, select, text, exists, and_
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, verify_jwt_in_request, get_jwt_identity, get_jwt_claims
+from functools import wraps
 
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
@@ -28,16 +29,10 @@ authorizations = {
 api = Api(app, authorizations=authorizations, security='apikey')
 
 logger = loggerStart()
+app.config['JWT_SECRET_KEY'] = 'tD2npsUrdzwTmvHIVQ4m6bKNFSyWXgophaj3DOqxg2dEgPvYVpqk3BZKEsdpI1V'
 jwt = JWTManager(app)
 jwt._set_error_handler_callbacks(api)
 #app.config['JWT_ACCESS_TOKEN_EXPIRES']=86400
-
-# @jwt.user_claims_loader
-# def add_claims_to_access_token(identity):
-#     return {
-#         'netid': identity,
-#         'role': 'student'
-#     }
 
 
 q_api = Namespace('student question', description = 'question operations')
@@ -89,16 +84,6 @@ create_user_model = api.model('create_user', {
     'password': fields.String(description='Password', required=True)
 })
 
-
-# authenticated_user_model = api.model('AuthenticatedUser', {
-#     'token': fields.String(description='Authentication Token'),
-#     'netid': fields.String(description='netid', attribute='user.userID'),
-#     'displayName': fields.String(description='display name', attribute='user.displayName'),
-#     'role': fields.String(description='role', attribute='user.role'),
-
-#     })
-
-
 api.add_namespace(s_api)
 api.add_namespace(re_api)
 api.add_namespace(en_api)
@@ -107,6 +92,28 @@ api.add_namespace(re_api)
 api.add_namespace(iclkres_api)
 api.add_namespace(lg_api)
 api.add_namespace(cu_api)
+
+
+@jwt.user_claims_loader
+def add_claims_to_access_token(identity):
+    instructor = text('SELECT * FROM faculty WHERE netid=:netid')
+    response = db.engine.execute(instructor, netid=identity).fetchone()
+    if response is None:
+        return {'role': 'student'}
+    else:
+        return {'role': 'instructor'}
+
+def instructor_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        verify_jwt_in_request()
+        claims = get_jwt_claims()
+        if claims['role'] != 'instructor':
+            return "Instructors only!", 403
+        else:
+            return fn(*args, **kwargs)
+    return wrapper
+
 
 @cu_api.route('/')
 class createuser(Resource):
@@ -129,28 +136,23 @@ class createuser(Resource):
             response = db.engine.execute(student, netid=netid).fetchone()
             if response is None:
                 if not piazzaLogin(netid, password):
-                    abort(401, 'Login Failed: Unknown User')
-                # newStudent = text("INSERT INTO login_details VALUES (:netid, 'student')")
-                # db.engine.execute(newStudent, netid=netid)
+                    abort(401, 'Authentication Failed: Unknown User')
                 newStudent = text('INSERT INTO students VALUES (:netid, :firstname, :lastname)')
                 db.engine.execute(newStudent, netid=netid, firstname=firstname, lastname=lastname)
                 db.session.commit()
             else:
                 if not piazzaLogin(netid, password):
-                    abort(401, 'Login Failed: Student')
+                    abort(401, 'Authentication Failed: Student: Please use your Piazza login credentials')
                 updateStudent = text('UPDATE students SET firstname=:firstname, lastname=:lastname WHERE netid=:netid')
                 db.engine.execute(updateStudent, netid=netid, firstname=firstname, lastname=lastname)
                 db.session.commit()
         else:
             if not piazzaLogin(netid, password):
-                abort(401, 'Authentication Failed: Professor')
-            # newInstructor = text("INSERT INTO login_details VALUES (:netid, 'instructor')")
-            # db.engine.execute(newInstructor, netid=netid)
+                abort(401, 'Authentication Failed: Professor: Please use your Piazza login credentials')
             updateInstructor = text('UPDATE faculty SET firstname=:firstname, lastname=:lastname WHERE netid=:netid')
             db.engine.execute(updateInstructor, netid=netid, firstname=firstname, lastname=lastname)
             db.session.commit()
         return "User information has been updated successfully", 200
-
 
 @lg_api.route('/')
 class login(Resource):
@@ -165,9 +167,6 @@ class login(Resource):
 
         instructor = text('SELECT * FROM faculty WHERE netid=:netid')
         response = db.engine.execute(instructor, netid=netid).fetchone()
-
-        role = "student"
-
         if response is None:
             student = text('SELECT * FROM students WHERE netid=:netid')
             response = db.engine.execute(student, netid=netid).fetchone()
@@ -175,28 +174,20 @@ class login(Resource):
                 abort(401, 'Login Failed: Unknown User')
             else:
                 if not piazzaLogin(netid, password):
-                    abort(401, 'Login Failed: Student')
+                    abort(401, 'Login Failed: Student: Please use your Piazza login credentials')
         else:
             if not piazzaLogin(netid, password):
-                abort(401, 'Login Failed: Professor')
-            role = "instructor"
+                abort(401, 'Login Failed: Professor: Please use your Piazza login credentials')
 
-        #they are an authenticated user
-        token = create_access_token(identity={'iss': netid, 'ins': role!="student"})
+        token = create_access_token(identity=netid)
         return {'token': token}, 200
-
 
 @s_api.route('/')
 class sessioninformation(Resource):
-    @jwt_required
+    @instructor_required
     def get(self):
         classid = text('SELECT * from session')
         response = db.engine.execute(classid).fetchall()
-        # claims = get_jwt_claims()
-        # return jsonify({
-        #     'netid_is': claims['netid'],
-        #     'role_is': claims['role']
-        # }), 200
         return json.dumps([dict(row) for row in response])
 
     @api.expect(post_session_model)

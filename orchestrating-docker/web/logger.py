@@ -27,5 +27,4 @@ def loggerStart():
         if LOGGING:
             logger.addHandler(c_handler)
         logger.info("Console logging is on.")
-
     return logger
