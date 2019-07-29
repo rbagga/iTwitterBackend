@@ -6,7 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_restplus import Api, Namespace, abort, Resource, fields, marshal_with
 from config import BaseConfig
 from sqlalchemy import func, select, text, exists, and_
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, verify_jwt_in_request, get_jwt_identity
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, verify_jwt_in_request, get_jwt_identity, get_jwt_claims
 
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
@@ -31,6 +31,13 @@ logger = loggerStart()
 jwt = JWTManager(app)
 jwt._set_error_handler_callbacks(api)
 #app.config['JWT_ACCESS_TOKEN_EXPIRES']=86400
+
+# @jwt.user_claims_loader
+# def add_claims_to_access_token(identity):
+#     return {
+#         'netid': identity,
+#         'role': 'student'
+#     }
 
 
 q_api = Namespace('student question', description = 'question operations')
@@ -175,15 +182,21 @@ class login(Resource):
             role = "instructor"
 
         #they are an authenticated user
-        token = create_access_token(identity=netid)
-        return {'token': token, 'role': role}, 200
+        token = create_access_token(identity={'iss': netid, 'ins': role!="student"})
+        return {'token': token}, 200
 
 
 @s_api.route('/')
 class sessioninformation(Resource):
+    @jwt_required
     def get(self):
         classid = text('SELECT * from session')
         response = db.engine.execute(classid).fetchall()
+        # claims = get_jwt_claims()
+        # return jsonify({
+        #     'netid_is': claims['netid'],
+        #     'role_is': claims['role']
+        # }), 200
         return json.dumps([dict(row) for row in response])
 
     @api.expect(post_session_model)

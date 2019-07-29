@@ -34,7 +34,7 @@ def create_tables():
         PRIMARY KEY(netid, term, course_number),
         FOREIGN KEY (course_number, term)
         REFERENCES courses (course_number, term)
-        ON DELETE CASCADE,
+        ON DELETE CASCADE
         -- FOREIGN KEY(netid)
         -- REFERENCES login_details(netid)
         -- ON UPDATE CASCADE
@@ -48,7 +48,7 @@ def create_tables():
         lastname VARCHAR(255) NOT NULL,
         email VARCHAR(255),
         dept VARCHAR(255) DEFAULT 'ECE',
-        year VARCHAR(255) DEFAULT 'Grad',
+        year VARCHAR(255) DEFAULT 'Grad'
         -- FOREIGN KEY(netid)
         -- REFERENCES login_details(netid)
         -- ON UPDATE CASCADE
