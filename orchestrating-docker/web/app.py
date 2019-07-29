@@ -6,11 +6,19 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_restplus import Api, Namespace, abort, Resource, fields, marshal_with
 from config import BaseConfig
 from sqlalchemy import func, select, text, exists, and_
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, verify_jwt_in_request, get_jwt_identity
+from hashlib import sha256
 
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
 db = SQLAlchemy(app)
 api = Api(app)
+
+from models import *
+from logger import *
+from transaction import *
+
+logger = loggerStart()
 
 q_api = Namespace('student question', description = 'question operations')
 
@@ -25,18 +33,12 @@ iclkres_api = Namespace('I clicker reponse', description = 'Insert a reponse ope
 
 q_api = Namespace('student_question', description = 'student question operations')
 iq_api = Namespace('instructor_question', description = 'instructor question operations')
-
-from models import *
-from logger import *
-from transaction import *
-
-api.add_namespace(q_api)
-logger = loggerStart()
+lg_api = Namespace('login', description='Authentication')
 
 get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
 post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
 
-api.add_namespace(s_api)
+
 get_session_model = api.model('professor', {'professor': fields.String(description = 'professor ID to get'),
                                 'classId': fields.String(description = 'class ID to get'),
                                 'term': fields.String(description = 'term to get')})
@@ -44,6 +46,34 @@ post_session_model = api.model('professor', {'professor': fields.String,
                                 'term': fields.String,
                                 'classId': fields.String}
                                 )
+get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
+post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
+
+
+get_enterquestion_model = api.model('iqid', {'QuestionNumber': fields.Integer(description = 'Question number to get')})
+post_enterquestion_model = api.model('Question', {'Question': fields.String,
+                                'optionA': fields.String,
+                                'answer': fields.String,
+                                'lecturenumber': fields.Integer
+                                }
+                                )
+get_registration_model = api.model('netid', {'Netid': fields.String(description = 'Registration ID to get')})
+post_registration_model = api.model('Registration', {'netid': fields.String, 'classId' : fields.String, 'term': fields.String})
+get_iclickerreponse_model = api.model('reponse', {'Response Number': fields.Integer(description = 'Question number to get')})
+post_iclickerreponse_model = api.model('Response', {'Netid': fields.String,
+                                'sessionId': fields.Integer,
+                                'questionnum': fields.Integer,
+                                'response': fields.String
+                                }
+                                )
+
+api.add_namespace(s_api)
+api.add_namespace(re_api)
+api.add_namespace(en_api)
+api.add_namespace(q_api)
+api.add_namespace(re_api)
+api.add_namespace(iclkres_api)
+
 @s_api.route('/')
 class sessioninformation(Resource):
     def get(self):
@@ -62,19 +92,7 @@ class sessioninformation(Resource):
         db.session.add(q_tuple)
         db.session.commit()
 
-api.add_namespace(re_api)
 
-get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
-post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
-
-api.add_namespace(en_api)
-get_enterquestion_model = api.model('iqid', {'QuestionNumber': fields.Integer(description = 'Question number to get')})
-post_enterquestion_model = api.model('Question', {'Question': fields.String,
-                                'optionA': fields.String,
-                                'answer': fields.String,
-                                'lecturenumber': fields.Integer
-                                }
-                                )
 @en_api.route('/')
 class Insertquestion(Resource):
     def get(self):
@@ -94,9 +112,6 @@ class Insertquestion(Resource):
         db.session.add(q_tuple)
         db.session.commit()
 
-api.add_namespace(re_api)
-get_registration_model = api.model('netid', {'Netid': fields.String(description = 'Registration ID to get')})
-post_registration_model = api.model('Registration', {'netid': fields.String, 'classId' : fields.String, 'term': fields.String})
 
 @re_api.route('/')
 class StudentRegisteration(Resource):
@@ -116,14 +131,7 @@ class StudentRegisteration(Resource):
         db.session.add(q_tuple)
         db.session.commit()
 
-api.add_namespace(iclkres_api)
-get_iclickerreponse_model = api.model('reponse', {'Response Number': fields.Integer(description = 'Question number to get')})
-post_iclickerreponse_model = api.model('Response', {'Netid': fields.String,
-                                'sessionId': fields.Integer,
-                                'questionnum': fields.Integer,
-                                'response': fields.String
-                                }
-                                )
+
 @iclkres_api.route('/')
 class Iclickerreponse(Resource):
     def get(self):
@@ -293,12 +301,6 @@ class StudentQuestion(Resource):
         query = text('SELECT * from questions WHERE qid = :questionid')
         response = db.engine.execute(query, questionid=qid).fetchall()
         return jsonify({'response' : [dict(row) for row in response]})
-
-
-
-
-
-
 
 # @api.route('/hello')
 # class HelloWorld(Resource):
