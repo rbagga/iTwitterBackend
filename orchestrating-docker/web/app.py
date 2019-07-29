@@ -15,6 +15,8 @@ db = SQLAlchemy(app)
 
 from models import *
 from logger import *
+
+logger = loggerStart()
 from transaction import *
 from piazza import *
 
@@ -28,7 +30,7 @@ authorizations = {
 }
 api = Api(app, authorizations=authorizations, security='apikey')
 
-logger = loggerStart()
+
 app.config['JWT_SECRET_KEY'] = 'tD2npsUrdzwTmvHIVQ4m6bKNFSyWXgophaj3DOqxg2dEgPvYVpqk3BZKEsdpI1V'
 jwt = JWTManager(app)
 jwt._set_error_handler_callbacks(api)
@@ -184,7 +186,6 @@ class login(Resource):
 
 @s_api.route('/')
 class sessioninformation(Resource):
-    @instructor_required
     def get(self):
         classid = text('SELECT * from session')
         response = db.engine.execute(classid).fetchall()

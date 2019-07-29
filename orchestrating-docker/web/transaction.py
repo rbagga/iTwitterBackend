@@ -1,7 +1,7 @@
 # transaction.py
 
 from sqlalchemy import text
-from app import db
+from app import db, logger
 
 
 # how to restart a transaciton
@@ -38,10 +38,11 @@ def getTimestamp():
     if ts is None:
       createts = text('INSERT INTO timestamp VALUES (0)')
       db.engine.execute(createts)
-      ts = 0
-
-    incTimestamp = text('UPDATE timestamp SET nextavailable = :tsInc')
-    db.engine.execute(incTimestamp, tsInc = ts + 1)
+      queryTimestamp = text('SELECT nextavailable FROM timestamp')
+      ts = db.engine.execute(queryTimestamp).fetchone()
+    else:
+      incTimestamp = text('UPDATE timestamp SET nextavailable = :tsInc')
+      db.engine.execute(incTimestamp, tsInc = ts.nextavailable + 1)
 
     end = text('COMMIT')
     db.engine.execute(end)
@@ -53,9 +54,10 @@ def startTransaction():
     db.engine.execute(begin)
     setTS = text('SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED')
     db.engine.execute(setTS)
-    return ts
+    logger.info("Transaction %d start", ts.nextavailable)
 
 
 def endTransaction():
   end = text('COMMIT')
   db.engine.execute(end)
+  logger.info("Transaction commit")
