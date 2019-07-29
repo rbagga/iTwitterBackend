@@ -6,7 +6,7 @@ from piazza_api import Piazza
 
 p = Piazza()
 
-def piazza_login(netid, passwd=""):
+def piazzaLogin(netid, passwd=""):
     try:
         p.user_login(netid+"@illinois.edu", passwd)
     except:

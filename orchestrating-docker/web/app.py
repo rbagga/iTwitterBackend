@@ -7,7 +7,6 @@ from flask_restplus import Api, Namespace, abort, Resource, fields, marshal_with
 from config import BaseConfig
 from sqlalchemy import func, select, text, exists, and_
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, verify_jwt_in_request, get_jwt_identity
-from hashlib import sha256
 
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
@@ -17,28 +16,28 @@ api = Api(app)
 from models import *
 from logger import *
 from transaction import *
+from piazza import *
 
 logger = loggerStart()
+jwt = JWTManager(app)
+jwt._set_error_handler_callbacks(api)
+#app.config['JWT_ACCESS_TOKEN_EXPIRES']=86400
+
+
 
 q_api = Namespace('student question', description = 'question operations')
-
 s_api = Namespace('Session Information', description = 'question session information operations')
-
 re_api = Namespace('Registeration Information', description = 'Registeration information operations')
-
-
 en_api = Namespace('Insert Questions', description = 'Insert a question operation')
-
 iclkres_api = Namespace('I clicker reponse', description = 'Insert a reponse operation')
-
 q_api = Namespace('student_question', description = 'student question operations')
 iq_api = Namespace('instructor_question', description = 'instructor question operations')
 lg_api = Namespace('login', description='Authentication')
+cu_api = Namespace('create_user', description = 'create/update user information')
+
 
 get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
 post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
-
-
 get_session_model = api.model('professor', {'professor': fields.String(description = 'professor ID to get'),
                                 'classId': fields.String(description = 'class ID to get'),
                                 'term': fields.String(description = 'term to get')})
@@ -48,8 +47,6 @@ post_session_model = api.model('professor', {'professor': fields.String,
                                 )
 get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
 post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
-
-
 get_enterquestion_model = api.model('iqid', {'QuestionNumber': fields.Integer(description = 'Question number to get')})
 post_enterquestion_model = api.model('Question', {'Question': fields.String,
                                 'optionA': fields.String,
@@ -66,6 +63,26 @@ post_iclickerreponse_model = api.model('Response', {'Netid': fields.String,
                                 'response': fields.String
                                 }
                                 )
+login_model = api.model('login', {
+    'netid': fields.String(description='netid', required=True),
+    'password': fields.String(description='Password', required=True)
+    })
+create_user_model = api.model('create_user', {
+    'netid': fields.String(description='netid', required=True),
+    'firstname': fields.String(description='firstname', required=True),
+    'lastname': fields.String(description='lastname', required=True),
+    'password': fields.String(description='Password', required=True)
+})
+
+
+# authenticated_user_model = api.model('AuthenticatedUser', {
+#     'token': fields.String(description='Authentication Token'),
+#     'netid': fields.String(description='netid', attribute='user.userID'),
+#     'displayName': fields.String(description='display name', attribute='user.displayName'),
+#     'role': fields.String(description='role', attribute='user.role'),
+
+#     })
+
 
 api.add_namespace(s_api)
 api.add_namespace(re_api)
@@ -73,6 +90,84 @@ api.add_namespace(en_api)
 api.add_namespace(q_api)
 api.add_namespace(re_api)
 api.add_namespace(iclkres_api)
+api.add_namespace(lg_api)
+api.add_namespace(cu_api)
+
+@cu_api.route('/')
+class createuser(Resource):
+    @api.expect(create_user_model)
+    @api.doc(body=create_user_model)
+    @api.response(200, 'Successful')
+    @api.response(401, 'Authentication Failed')
+    def post(self):
+        params = api.payload
+        netid = params.pop("netid")
+        firstname = params.pop("firstname")
+        lastname = params.pop("lastname")
+        password = params.pop("password")
+
+        instructor = text('SELECT * FROM faculty WHERE netid=:netid')
+        response = db.engine.execute(instructor, netid=netid).fetchone()
+
+        if response is None:
+            student = text('SELECT * FROM students WHERE netid=:netid')
+            response = db.engine.execute(student, netid=netid).fetchone()
+            if response is None:
+                if not piazzaLogin(netid, password):
+                    abort(401, 'Login Failed: Unknown User')
+                newStudent = text('INSERT INTO login_details VALUES (:netid, :firstname, :lastname)')
+                db.engine.execute(newStudent, netid=netid, firstname=firstname, lastname=lastname)
+                newStudent = text('INSERT INTO students VALUES (:netid, :firstname, :lastname)')
+                db.engine.execute(newStudent, netid=netid, firstname=firstname, lastname=lastname)
+                db.session.commit()
+            else:
+                if not piazzaLogin(netid, password):
+                    abort(401, 'Login Failed: Student')
+                updateStudent = text('UPDATE students SET firstname=:firstname, lastname=:lastname WHERE netid=:netid')
+                db.engine.execute(updateStudent, netid=netid, firstname=firstname, lastname=lastname)
+                db.session.commit()
+        else:
+            if not piazzaLogin(netid, password):
+                abort(401, 'Authentication Failed: Professor')
+            updateInstructor = text('UPDATE faculty SET firstname=:firstname, lastname=:lastname WHERE netid=:netid')
+            db.engine.execute(updateInstructor, netid=netid, firstname=firstname, lastname=lastname)
+            db.session.commit()
+        return
+
+
+@lg_api.route('/')
+class login(Resource):
+    @api.expect(login_model)
+    @api.doc(body=login_model)
+    @api.response(200, 'Login Successful')
+    @api.response(401, 'Login Failed')
+    def post(self):
+        params = api.payload
+        netid = params.pop("netid")
+        password = params.pop("password")
+
+        instructor = text('SELECT * FROM faculty WHERE netid=:netid')
+        response = db.engine.execute(instructor, netid=netid).fetchone()
+
+        role = "student"
+
+        if response is None:
+            student = text('SELECT * FROM students WHERE netid=:netid')
+            response = db.engine.execute(student, netid=netid).fetchone()
+            if response is None:
+                abort(401, 'Login Failed: Unknown User')
+            else:
+                if not piazzaLogin(netid, password):
+                    abort(401, 'Login Failed: Student')
+        else:
+            if not piazzaLogin(netid, password):
+                abort(401, 'Login Failed: Professor')
+            role = "instructor"
+
+        #they are an authenticated user
+        token = create_access_token(identity=netid)
+        return {'token': token, 'role': role}
+
 
 @s_api.route('/')
 class sessioninformation(Resource):
