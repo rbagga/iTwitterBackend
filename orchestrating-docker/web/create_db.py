@@ -193,17 +193,23 @@ def create_concurrency_triggers(): ##########################
         CREATE OR REPLACE FUNCTION trigger_update_timestamp()
         RETURNS  trigger AS $$
         BEGIN
-            IF NEW.readTS IS NULL THEN
-            IF OLD.writeTS>NEW.writeTS OR OLD.readTS>NEW.writeTS THEN
+            RAISE NOTICE 'Checking ability to read/write';
+            IF NEW.readts IS NULL THEN
+            RAISE NOTICE 'Checking for ability to write';
+            IF OLD.writets>NEW.writets OR OLD.readts>NEW.writets THEN
             RAISE EXCEPTION 'UPDATE concurrency: row has been read or written to by a more recent transaction';
             ELSE
-            NEW.readTS = OLD.readTS;
+            NEW.readts = OLD.readts;
             END IF;
-            ELSEIF NEW.writeTS IS NULL THEN
-            IF OLD.writeTS>NEW.readTS THEN
+            ELSEIF NEW.writets IS NULL THEN
+            RAISE NOTICE 'Checking for ability to read';
+            IF OLD.writets>NEW.readts THEN
             RAISE EXCEPTION 'READ concurrency: row has been written to by a more recent transaction with timestamp %', OLD.writeTS;
             ELSE
-            NEW.writeTS = OLD.writeTS;
+            IF OLD.readts>NEW.readts THEN
+            NEW.readts = OLD.readts;
+            END IF;
+            NEW.writets = OLD.writets;
             END IF;
             END IF;
             RETURN NEW;
@@ -213,10 +219,9 @@ def create_concurrency_triggers(): ##########################
         """
         CREATE TRIGGER update_timestamp
         BEFORE UPDATE
-        ON ################################################### tablename
+        ON timestamptest
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_update_timestamp();
-        $$ LANGUAGE plpgsql;
         """
     )
 
@@ -262,6 +267,9 @@ db.create_all()
 insert_login_details(login_list)
 insert_login_details(login_list_2)
 insert_students(login_list)
-####create_concurrency_triggers()
+
+
+create_concurrency_triggers()
+
 # insert_faculty(login_list_2)
 #     create_tables()

@@ -3,8 +3,8 @@
 
 import logging
 
-LOGGING = False
-FILELOGGING = True
+LOGGING = True
+FILELOGGING = False
 
 def loggerStart():
     gunicorn_error_handlers = logging.getLogger('gunicorn.error').handlers
@@ -26,7 +26,6 @@ def loggerStart():
         c_handler.setFormatter(c_formatter)
         if LOGGING:
             logger.addHandler(c_handler)
-        logger.info("-------------------")
         logger.info("Console logging is on.")
 
     return logger

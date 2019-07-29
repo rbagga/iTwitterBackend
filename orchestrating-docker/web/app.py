@@ -16,6 +16,7 @@ iq_api = Namespace('instructor_question', description = 'instructor question ope
 
 from models import *
 from logger import *
+from transaction import *
 
 api.add_namespace(q_api)
 logger = loggerStart()
