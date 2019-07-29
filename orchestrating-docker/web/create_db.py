@@ -18,6 +18,8 @@ def create_tables():
         instructor VARCHAR(255),
         instructor_netid VARCHAR(255),
         piazza_nid VARCHAR(255) DEFAULT NULL,
+        readts INTEGER NOT NULL DEFAULT 0,
+        writets INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY(course_number, term)
         )
         """,
@@ -31,6 +33,8 @@ def create_tables():
         office_number INTEGER,
         term VARCHAR(255),
         course_number VARCHAR(255),
+        readts INTEGER NOT NULL DEFAULT 0,
+        writets INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY(netid, term, course_number),
         FOREIGN KEY (course_number, term)
         REFERENCES courses (course_number, term)
@@ -48,7 +52,9 @@ def create_tables():
         lastname VARCHAR(255) NOT NULL,
         email VARCHAR(255),
         dept VARCHAR(255) DEFAULT 'ECE',
-        year VARCHAR(255) DEFAULT 'Grad'
+        year VARCHAR(255) DEFAULT 'Grad',
+        readts INTEGER NOT NULL DEFAULT 0,
+        writets INTEGER NOT NULL DEFAULT 0
         -- FOREIGN KEY(netid)
         -- REFERENCES login_details(netid)
         -- ON UPDATE CASCADE
@@ -60,6 +66,8 @@ def create_tables():
         netid VARCHAR(255),
         course_number VARCHAR(255),
         term VARCHAR(255),
+        readts INTEGER NOT NULL DEFAULT 0,
+        writets INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY(netid, course_number, term)
         )
         """,
@@ -70,6 +78,8 @@ def create_tables():
         course VARCHAR(255),
         up_votes INTEGER,
         sub_group VARCHAR(255),
+        readts INTEGER NOT NULL DEFAULT 0,
+        writets INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY(q_number, date_posted, course)
         ) """
         #create more tables below as necessary looking at the Relational Schema
@@ -283,7 +293,7 @@ def insert_abdu(login_list):
 #         if conn is not None:
 #             conn.close()
 
-def create_concurrency_triggers():
+def create_concurrency_triggers():  #### may still need to write an insert trigger
     """ create concurrency triggers for all sql tables  """
     commands = (
         """

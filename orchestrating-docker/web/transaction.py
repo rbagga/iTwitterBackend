@@ -12,13 +12,12 @@ from app import db, logger
 #             after reads, update the read TS of the exact same query second, first do the read query
 #             example: read:
 #               select from Bags that are red
-#               update Bags set readts = ts, writets = NULL where <read query where>
+#               update Bags set readts = :ts, writets = NULL where <read query where>
 #             example: write:
 #               update Bags set <write action>, writets = ts, readts = NULL where <write query where>
 #        endTransaction()
-#   except:
-#       rollback = text('ROLLBACK')
-#       db.engine.execute(rollback)
+#   except psycopg2.Error:
+#       rollBack()
 #   else:
 #        break
 
@@ -40,9 +39,8 @@ def getTimestamp():
       db.engine.execute(createts)
       queryTimestamp = text('SELECT nextavailable FROM timestamp')
       ts = db.engine.execute(queryTimestamp).fetchone()
-    else:
-      incTimestamp = text('UPDATE timestamp SET nextavailable = :tsInc')
-      db.engine.execute(incTimestamp, tsInc = ts.nextavailable + 1)
+    incTimestamp = text('UPDATE timestamp SET nextavailable = :tsInc')
+    db.engine.execute(incTimestamp, tsInc = ts.nextavailable + 1)
 
     end = text('COMMIT')
     db.engine.execute(end)
@@ -55,9 +53,15 @@ def startTransaction():
     setTS = text('SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED')
     db.engine.execute(setTS)
     logger.info("Transaction %d start", ts.nextavailable)
-
+    return ts.nextavailable
 
 def endTransaction():
-  end = text('COMMIT')
-  db.engine.execute(end)
-  logger.info("Transaction commit")
+    db.session.commit()
+    end = text('COMMIT')
+    db.engine.execute(end)
+    logger.info("Transaction commit")
+
+def rollBack():
+    rollback = text('ROLLBACK')
+    db.engine.execute(rollback)
+    logger.info("Rolling back...")

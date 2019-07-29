@@ -8,6 +8,7 @@ from config import BaseConfig
 from sqlalchemy import func, select, text, exists, and_
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, verify_jwt_in_request, get_jwt_identity, get_jwt_claims
 from functools import wraps
+import psycopg2
 
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
@@ -39,7 +40,7 @@ jwt._set_error_handler_callbacks(api)
 
 q_api = Namespace('student question', description = 'question operations')
 s_api = Namespace('Session Information', description = 'question session information operations')
-re_api = Namespace('Registeration Information', description = 'Registeration information operations')
+re_api = Namespace('Registration Information', description = 'Registration information operations')
 en_api = Namespace('Insert Questions', description = 'Insert a question operation')
 iclkres_api = Namespace('I clicker reponse', description = 'Insert a reponse operation')
 q_api = Namespace('student_question', description = 'student question operations')
@@ -98,8 +99,18 @@ api.add_namespace(cu_api)
 
 @jwt.user_claims_loader
 def add_claims_to_access_token(identity):
-    instructor = text('SELECT * FROM faculty WHERE netid=:netid')
-    response = db.engine.execute(instructor, netid=identity).fetchone()
+    while True:
+        try:
+            ts = startTransaction()
+            instructor = text('SELECT * FROM faculty WHERE netid=:netid')
+            response = db.engine.execute(instructor, netid=identity).fetchone()
+            updatets = text('UPDATE faculty SET readts = :ts WHERE netid=:netid')
+            db.engine.execute(updatets, ts=ts, netid=identity)
+            endTransaction()
+        except:
+            rollBack()
+        else:
+            break
     if response is None:
         return {'role': 'student'}
     else:
@@ -116,7 +127,6 @@ def instructor_required(fn):
             return fn(*args, **kwargs)
     return wrapper
 
-
 @cu_api.route('/')
 class createuser(Resource):
     @api.expect(create_user_model)
@@ -130,30 +140,43 @@ class createuser(Resource):
         lastname = params.pop("lastname")
         password = params.pop("password")
 
-        instructor = text('SELECT * FROM faculty WHERE netid=:netid')
-        response = db.engine.execute(instructor, netid=netid).fetchone()
+        while True:
+            try:
+                ts = startTransaction()
+                instructor = text('SELECT * FROM faculty WHERE netid=:netid')
+                response = db.engine.execute(instructor, netid=netid).fetchone()
+                updatets = text('UPDATE faculty SET readts = :ts WHERE netid=:netid')
+                db.engine.execute(updatets, ts=ts, netid=netid)
 
-        if response is None:
-            student = text('SELECT * FROM students WHERE netid=:netid')
-            response = db.engine.execute(student, netid=netid).fetchone()
-            if response is None:
-                if not piazzaLogin(netid, password):
-                    abort(401, 'Authentication Failed: Unknown User')
-                newStudent = text('INSERT INTO students VALUES (:netid, :firstname, :lastname)')
-                db.engine.execute(newStudent, netid=netid, firstname=firstname, lastname=lastname)
-                db.session.commit()
+                if response is None:
+                    student = text('SELECT * FROM students WHERE netid=:netid')
+                    response = db.engine.execute(student, netid=netid).fetchone()
+                    updatets = text('UPDATE students SET readts = :ts WHERE netid=:netid')
+                    db.engine.execute(updatets, ts=ts, netid=netid)
+
+                    if response is None:
+                        if not piazzaLogin(netid, password):
+                            endTransaction()
+                            abort(401, 'Authentication Failed: Unknown User')
+                        newStudent = text('INSERT INTO students (netid, firstname, lastname, writets) VALUES (:netid, :firstname, :lastname, :ts)')
+                        db.engine.execute(newStudent, netid=netid, firstname=firstname, lastname=lastname, ts=ts)
+                    else:
+                        if not piazzaLogin(netid, password):
+                            endTransaction()
+                            abort(401, 'Authentication Failed: Student: Please use your Piazza login credentials')
+                        updateStudent = text('UPDATE students SET firstname=:firstname, lastname=:lastname, writets=:ts WHERE netid=:netid')
+                        db.engine.execute(updateStudent, netid=netid, firstname=firstname, lastname=lastname, ts=ts)
+                else:
+                    if not piazzaLogin(netid, password):
+                        endTransaction()
+                        abort(401, 'Authentication Failed: Professor: Please use your Piazza login credentials')
+                    updateInstructor = text('UPDATE faculty SET firstname=:firstname, lastname=:lastname, writets=:ts WHERE netid=:netid')
+                    db.engine.execute(updateInstructor, netid=netid, firstname=firstname, lastname=lastname, ts=ts)
+                endTransaction()
+            except psycopg2.Error:
+                rollBack()
             else:
-                if not piazzaLogin(netid, password):
-                    abort(401, 'Authentication Failed: Student: Please use your Piazza login credentials')
-                updateStudent = text('UPDATE students SET firstname=:firstname, lastname=:lastname WHERE netid=:netid')
-                db.engine.execute(updateStudent, netid=netid, firstname=firstname, lastname=lastname)
-                db.session.commit()
-        else:
-            if not piazzaLogin(netid, password):
-                abort(401, 'Authentication Failed: Professor: Please use your Piazza login credentials')
-            updateInstructor = text('UPDATE faculty SET firstname=:firstname, lastname=:lastname WHERE netid=:netid')
-            db.engine.execute(updateInstructor, netid=netid, firstname=firstname, lastname=lastname)
-            db.session.commit()
+                break
         return "User information has been updated successfully", 200
 
 @lg_api.route('/')
@@ -167,28 +190,54 @@ class login(Resource):
         netid = params.pop("netid")
         password = params.pop("password")
 
-        instructor = text('SELECT * FROM faculty WHERE netid=:netid')
-        response = db.engine.execute(instructor, netid=netid).fetchone()
-        if response is None:
-            student = text('SELECT * FROM students WHERE netid=:netid')
-            response = db.engine.execute(student, netid=netid).fetchone()
-            if response is None:
-                abort(401, 'Login Failed: Unknown User')
-            else:
-                if not piazzaLogin(netid, password):
-                    abort(401, 'Login Failed: Student: Please use your Piazza login credentials')
-        else:
-            if not piazzaLogin(netid, password):
-                abort(401, 'Login Failed: Professor: Please use your Piazza login credentials')
+        while True:
+            try:
+                ts = startTransaction()
+                instructor = text('SELECT * FROM faculty WHERE netid=:netid')
+                response = db.engine.execute(instructor, netid=netid).fetchone()
+                updatets = text('UPDATE faculty SET readts = :ts WHERE netid=:netid')
+                db.engine.execute(updatets, ts=ts, netid=netid)
 
+                if response is None:
+                    student = text('SELECT * FROM students WHERE netid=:netid')
+                    response = db.engine.execute(student, netid=netid).fetchone()
+                    updatets = text('UPDATE students SET readts = :ts WHERE netid=:netid')
+                    db.engine.execute(updatets, ts=ts, netid=netid)
+                    if response is None:
+                        endTransaction()
+                        abort(401, 'Login Failed: Unknown User')
+                    else:
+                        if not piazzaLogin(netid, password):
+                            endTransaction()
+                            abort(401, 'Login Failed: Student: Please use your Piazza login credentials')
+                else:
+                    if not piazzaLogin(netid, password):
+                        endTransaction()
+                        abort(401, 'Login Failed: Professor: Please use your Piazza login credentials')
+                endTransaction()
+            except psycopg2.Error:
+                rollBack()
+            else:
+                break
         token = create_access_token(identity=netid)
         return {'token': token}, 200
 
 @s_api.route('/')
 class sessioninformation(Resource):
     def get(self):
-        classid = text('SELECT * from session')
-        response = db.engine.execute(classid).fetchall()
+        global response
+        while True:
+            try:
+                ts = startTransaction()
+                sessionInfo = text('SELECT * from session')
+                response = db.engine.execute(sessionInfo).fetchall()
+                updatets = text('UPDATE session SET readts = :ts')
+                db.engine.execute(updatets, ts=ts)
+                endTransaction()
+            except:
+                rollBack()
+            else:
+                break
         return json.dumps([dict(row) for row in response])
 
     @api.expect(post_session_model)
@@ -197,17 +246,35 @@ class sessioninformation(Resource):
         params = api.payload
         professor = params.pop("professor")
         term = params.pop("term")
-        classID = params.pop("classId")
-        q_tuple = Session(term, professor, classID)
-        db.session.add(q_tuple)
-        db.session.commit()
-
+        classid = params.pop("classId")
+        while True:
+            try:
+                ts = startTransaction()
+                newSession = text('INSERT INTO session (professor, term, classid, writets) VALUES (:professor, :term, :classid, :ts)')
+                db.engine.execute(newSession, professor=professor, term=term, classid=classid, ts=ts)
+                endTransaction()
+            except:
+                rollBack()
+            else:
+                break
+        return "Session information has been updated successfully", 200
 
 @en_api.route('/')
 class Insertquestion(Resource):
     def get(self):
-        query = text('SELECT ques from instrquestions')
-        response = db.engine.execute(query).fetchall()
+        global response
+        while True:
+            try:
+                ts = startTransaction()
+                questionInfo = text('SELECT ques from iclickerquestion')
+                response = db.engine.execute(questionInfo).fetchall()
+                updatets = text('UPDATE iclickerquestion SET readts = :ts')
+                db.engine.execute(updatets, ts=ts)
+                endTransaction()
+            except:
+                rollBack()
+            else:
+                break
         return jsonify({'response' : [dict(row) for row in response]})
 
     @api.expect(post_enterquestion_model)
@@ -215,19 +282,38 @@ class Insertquestion(Resource):
     def post(self):
         params = api.payload
         ques = params.pop("Question")
-        optionA = params.pop("optionA")
+        optiona = params.pop("optionA")
         answer = params.pop("answer")
-        sessionId = params.pop("lecturenumber")
-        q_tuple = InstrQuestion(ques, answer, optionA, sessionId)
-        db.session.add(q_tuple)
-        db.session.commit()
+        sessionid = params.pop("lecturenumber")
+        while True:
+            try:
+                ts = startTransaction()
+                newQuestion = text('INSERT INTO iclickerquestion (ques, answer, optiona, sessionid, writets) VALUES (:ques, :answer, :optiona, :sessionid, :ts)')
+                db.engine.execute(newQuestion, ques=ques, answer=answer, optiona=optiona, sessionid=sessionid, ts=ts)
+                endTransaction()
+            except:
+                rollBack()
+            else:
+                break
+        return "I-Clicker Question information has been updated successfully", 200
 
 
 @re_api.route('/')
-class StudentRegisteration(Resource):
+class StudentEnrollment(Resource):
     def get(self):
-        query = text('SELECT * from registrationtable')
-        response = db.engine.execute(query).fetchall()
+        global response
+        while True:
+            try:
+                ts = startTransaction()
+                updatets = text('UPDATE enrollment SET readts = :ts')
+                db.engine.execute(updatets, ts=ts)
+                enrollmentInfo = text('SELECT * from enrollment')
+                response = db.engine.execute(enrollmentInfo).fetchall()
+                endTransaction()
+            except:
+                rollBack()
+            else:
+                break
         return json.dumps([dict(row) for row in response])
 
     @api.expect(post_registration_model)
@@ -235,18 +321,36 @@ class StudentRegisteration(Resource):
     def post(self):
         params = api.payload
         netid = params.pop("netid")
-        classId = params.pop("classId")
+        classid = params.pop("classId")
         term = params.pop("term")
-        q_tuple = Registration(netid, classId, term)
-        db.session.add(q_tuple)
-        db.session.commit()
-
+        while True:
+            try:
+                ts = startTransaction()
+                newQuestion = text('INSERT INTO enrollment (netid, classid, term, writets) VALUES (:netid, :classid, :term, :ts)')
+                db.engine.execute(newQuestion, netid=netid, classid=classid, term=term, ts=ts)
+                endTransaction()
+            except:
+                rollBack()
+            else:
+                break
+        return "Enrollment information has been updated successfully", 200
 
 @iclkres_api.route('/')
 class Iclickerreponse(Resource):
     def get(self):
-        query = text('SELECT reponse from studentquestionanswer')
-        response = db.engine.execute(query).fetchall()
+        global response
+        while True:
+            try:
+                ts = startTransaction()
+                iclickerresponseInfo = text('SELECT * from iclickerresponse')
+                response = db.engine.execute(iclickerresponseInfo).fetchall()
+                updatets = text('UPDATE iclickerresponse SET readts = :ts')
+                db.engine.execute(updatets, ts=ts)
+                endTransaction()
+            except:
+                rollBack()
+            else:
+                break
         return json.dumps([dict(row) for row in response])
 
     @api.expect(post_iclickerreponse_model)
@@ -254,14 +358,20 @@ class Iclickerreponse(Resource):
     def post(self):
         params = api.payload
         netid = params.pop("Netid")
-        sessionId = params.pop("sessionId")
-        questionId = params.pop("questionnum")
+        sessionid = params.pop("sessionId")
+        questionid = params.pop("questionnum")
         studentreponse = params.pop("response")
-        q_tuple = IclickerReponse(netid, sessionId, questionId, studentreponse)
-        db.session.add(q_tuple)
-        db.session.commit()
-
-
+        while True:
+            try:
+                ts = startTransaction()
+                newQuestion = text('INSERT INTO iclickerresponse (netid, sessionid, questionid, studentresponse, writets) VALUES (:netid, :sessionid, :questionid, :studentresponse, :ts)')
+                db.engine.execute(newQuestion, netid=netid, sessionid=sessionid, questionid=questionid, studentresponse=studentresponse, ts=ts)
+                endTransaction()
+            except:
+                rollBack()
+            else:
+                break
+        return "I-Clicker Response information has been updated successfully", 200
 
 
 # @q_api.route('/')
@@ -298,29 +408,38 @@ class Iclickerreponse(Resource):
 @q_api.route('/<netid>/<qid>')
 class UpvotesPost(Resource):
     def put(self, netid, qid):
-            #ADD VALIDATION IF QID EXISTS (try catch)
-            netid_1 = netid
-            qid_1 = qid
-            print(netid_1)
-            votes_query = text('SELECT upvotes FROM questions WHERE qid = :qid')
-            response = db.engine.execute(votes_query, qid=qid).scalar()
-            new_votes = 0
-            # already_upvoted = db.session.query(exists().where(and_(Upvotes.netid == netid_1, Upvotes.qid == qid_1)))
-            exists_query = text('SELECT netid from upvotes WHERE EXISTS (SELECT netid from upvotes WHERE netid = :netid AND qid = :qid)')
-            existing = db.engine.execute(exists_query, netid = netid, qid = qid).fetchall()
-            already_upvoted = (len(existing) > 0)
-            if (not already_upvoted):
-                new_votes = response + 1
-                new_upvote = Upvotes(netid, qid)
-                db.session.add(new_upvote)
-                db.session.commit()
-            else:
-                new_votes = response - 1
-                delete_query = text('DELETE FROM upvotes WHERE netid = :netid')
-                db.engine.execute(delete_query, netid = netid)
-            update_query = text('UPDATE questions SET upvotes = :new_val WHERE qid=:qid')
-            db.engine.execute(update_query, new_val = new_votes, qid = qid)
+        netid_1 = netid
+        qid_1 = qid
+        #print(netid_1)
+        while True:
+            try:
+                ts = startTransaction()
 
+                votesInfo = text('SELECT upvotes FROM questions WHERE qid = :qid')
+                response = db.engine.execute(votesInfo, qid=qid).scalar()
+                updatets = text('UPDATE questions SET readts = :ts WHERE qid = :qid')
+                db.engine.execute(updatets, ts=ts, qid=qid)
+                new_votes = 0
+                exists_query = text('SELECT netid FROM upvotes WHERE EXISTS (SELECT netid FROM upvotes WHERE netid = :netid AND qid = :qid)')
+                existing = db.engine.execute(exists_query, netid = netid, qid = qid).fetchall()
+                updatets = text('UPDATE upvotes SET readts = :ts WHERE EXISTS (SELECT netid FROM upvotes WHERE netid = :netid AND qid = :qid)')
+                db.engine.execute(updatets, ts=ts, netid=netid, qid=qid)
+                already_upvoted = (len(existing) > 0)
+                if (not already_upvoted):
+                    new_votes = response + 1
+                    newUpvote = text('INSERT INTO upvotes (netid, qid) VALUES (:netid, qid, :ts)')
+                    db.engine.execute(newUpvote, netid=netid, qid=qid, ts=ts)
+                else:
+                    new_votes = response - 1
+                    deleteUpvote = text('DELETE FROM upvotes WHERE netid = :netid')
+                    db.engine.execute(deleteUpvote, netid = netid)
+                update_query = text('UPDATE questions SET upvotes = :upvotes, writets=:ts  WHERE qid=:qid')
+                db.engine.execute(update_query, upvotes = new_votes, ts=ts, qid = qid)
+                endTransaction()
+            except:
+                rollBack()
+            else:
+                break
 
         #else return error
 
@@ -354,8 +473,8 @@ class UpvotesPost(Resource):
 #     questions = Question.query.order_by(Question.date_posted.desc()).all()
 #     return render_template('question.html', questions = questions)
 #
-# @app.route('/instrquestion', methods=['GET', 'POST'])
-# def instrquestion():
+# @app.route('/iclickerquestion', methods=['GET', 'POST'])
+# def iclickerquestion():
 #     if request.method == 'POST':
 #         q = request.form['instr_question']
 #         a =  request.form['optionA']
@@ -363,12 +482,12 @@ class UpvotesPost(Resource):
 #         c = request.form['optionC']
 #         d = request.form['optionD']
 #         ans = request.form['answer']
-#         instructor_question = InstrQuestion(q, a, b, c, d, ans)
+#         instructor_question = iclickerquestion(q, a, b, c, d, ans)
 #         db.session.add(instructor_question)
 #         db.session.commit()
 #
-#     questions = InstrQuestion.query.order_by(InstrQuestion.date_posted.desc()).all()
-#     return render_template('instrquestion.html', questions = questions )
+#     questions = iclickerquestion.query.order_by(iclickerquestion.date_posted.desc()).all()
+#     return render_template('iclickerquestion.html', questions = questions )
 #
 # @app.route('/login', methods=['GET', 'POST'])
 # def index3():
@@ -407,9 +526,21 @@ class UpvotesPost(Resource):
 @q_api.route('/<qid>')
 class StudentQuestion(Resource):
     def get(self, qid):
-        query = text('SELECT * from questions WHERE qid = :questionid')
-        response = db.engine.execute(query, questionid=qid).fetchall()
+        global response
+        while True:
+            try:
+                ts = startTransaction()
+                questionInfo = text('SELECT * from questions WHERE qid = :questionid')
+                response = db.engine.execute(questionInfo, questionid=qid).fetchall()
+                updatets = text('UPDATE questions SET readts = :ts WHERE qid = :questionid')
+                db.engine.execute(updatets, ts=ts, questionid=qid)
+                endTransaction()
+            except:
+                rollBack()
+            else:
+                break
         return json.dumps([dict(row) for row in response])
+
 
 # @api.route('/hello')
 # class HelloWorld(Resource):
@@ -463,8 +594,8 @@ class StudentQuestions(Resource):
     #     db.session.commit()
     #     return True
 #
-# @api.route('/instrquestion', methods=['GET', 'POST'])
-# def instrquestion():
+# @api.route('/iclickerquestion', methods=['GET', 'POST'])
+# def iclickerquestion():
 #     if request.method == 'POST':
 #         q = request.form['instr_question']
 #         a =  request.form['optionA']
@@ -472,12 +603,12 @@ class StudentQuestions(Resource):
 #         c = request.form['optionC']
 #         d = request.form['optionD']
 #         ans = request.form['answer']
-#         instructor_question = InstrQuestion(q, a, b, c, d, ans)
+#         instructor_question = iclickerquestion(q, a, b, c, d, ans)
 #         db.session.add(instructor_question)
 #         db.session.commit()
 #
-#     questions = InstrQuestion.query.order_by(InstrQuestion.date_posted.desc()).all()
-#     return render_template('instrquestion.html', questions = questions )
+#     questions = iclickerquestion.query.order_by(iclickerquestion.date_posted.desc()).all()
+#     return render_template('iclickerquestion.html', questions = questions )
 #
 # @api.route('/login', methods=['GET', 'POST'])
 # def index3():
