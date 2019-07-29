@@ -11,18 +11,26 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ve
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
 db = SQLAlchemy(app)
-api = Api(app)
 
 from models import *
 from logger import *
 from transaction import *
 from piazza import *
 
+
+authorizations = {
+    'apikey': {
+        'type' : 'apiKey',
+        'in': 'header',
+        'name': 'Authorization'
+    }
+}
+api = Api(app, authorizations=authorizations, security='apikey')
+
 logger = loggerStart()
 jwt = JWTManager(app)
 jwt._set_error_handler_callbacks(api)
 #app.config['JWT_ACCESS_TOKEN_EXPIRES']=86400
-
 
 
 q_api = Namespace('student question', description = 'question operations')
@@ -132,7 +140,7 @@ class createuser(Resource):
             updateInstructor = text('UPDATE faculty SET firstname=:firstname, lastname=:lastname WHERE netid=:netid')
             db.engine.execute(updateInstructor, netid=netid, firstname=firstname, lastname=lastname)
             db.session.commit()
-        return
+        return "User information has been updated successfully", 200
 
 
 @lg_api.route('/')
@@ -166,7 +174,7 @@ class login(Resource):
 
         #they are an authenticated user
         token = create_access_token(identity=netid)
-        return {'token': token, 'role': role}
+        return {'token': token, 'role': role}, 200
 
 
 @s_api.route('/')
@@ -174,7 +182,7 @@ class sessioninformation(Resource):
     def get(self):
         classid = text('SELECT * from session')
         response = db.engine.execute(classid).fetchall()
-        return jsonify({response: [dict(row) for row in response]})
+        return json.dumps([dict(row) for row in response])
 
     @api.expect(post_session_model)
     @api.doc(body=post_session_model)
@@ -213,7 +221,7 @@ class StudentRegisteration(Resource):
     def get(self):
         query = text('SELECT * from registrationtable')
         response = db.engine.execute(query).fetchall()
-        return jsonify({'response' : [dict(row) for row in response]})
+        return json.dumps([dict(row) for row in response])
 
     @api.expect(post_registration_model)
     @api.doc(body=post_registration_model)
@@ -232,7 +240,7 @@ class Iclickerreponse(Resource):
     def get(self):
         query = text('SELECT reponse from studentquestionanswer')
         response = db.engine.execute(query).fetchall()
-        return jsonify({'response' : [dict(row) for row in response]})
+        return json.dumps([dict(row) for row in response])
 
     @api.expect(post_iclickerreponse_model)
     @api.doc(body=post_iclickerreponse_model)
@@ -394,7 +402,7 @@ class StudentQuestion(Resource):
     def get(self, qid):
         query = text('SELECT * from questions WHERE qid = :questionid')
         response = db.engine.execute(query, questionid=qid).fetchall()
-        return jsonify({'response' : [dict(row) for row in response]})
+        return json.dumps([dict(row) for row in response])
 
 # @api.route('/hello')
 # class HelloWorld(Resource):
