@@ -25,6 +25,8 @@ def create_tables():
         term VARCHAR(255),
         title VARCHAR(255),
         instructor VARCHAR(255),
+        instructor_netid VARCHAR(255),
+        piazza_nid VARCHAR(255) DEFAULT NULL,
         PRIMARY KEY(course_number, term)
         )
         """,
@@ -38,7 +40,7 @@ def create_tables():
         office_number INTEGER,
         term VARCHAR(255),
         course_number VARCHAR(255),
-        PRIMARY KEY(netid, term),
+        PRIMARY KEY(netid, term, course_number),
         FOREIGN KEY (course_number, term)
         REFERENCES courses (course_number, term)
         ON DELETE CASCADE,
@@ -162,7 +164,7 @@ def insert_students(login_list):
 
 def insert_faculty(login_list):
      """ insert multiple vendors into the vendors table  """
-     sql = "INSERT INTO faculty(netid, firstname, lastname, email) VALUES(%s, %s, %s, %s)"
+     sql = "INSERT INTO faculty(netid, firstname, lastname, email, term, course_number) VALUES(%s, %s, %s, %s, %s, %s)"
 
      conn = None
      try:
@@ -186,6 +188,109 @@ def insert_faculty(login_list):
         if conn is not None:
             conn.close()
 
+def insert_courses(login_list):
+     """ insert multiple vendors into the vendors table  """
+     sql = "INSERT INTO courses(course_number, instructor, term, title, instructor_netid) VALUES(%s, %s, %s, %s, %s)"
+
+     conn = None
+     try:
+         params = BaseConfig()
+         host_ = params.DB_SERVICE
+         port_ = params.DB_PORT
+         database_ = params.DB_NAME
+         user_ = params.DB_USER
+         password_ = params.DB_PASS
+         conn = psycopg2.connect(host=host_, database=database_, user=user_, password=password_, port=port_)
+
+         cur = conn.cursor()
+         cur.executemany(sql, login_list)
+         conn.commit()
+         cur.close()
+
+     except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+     finally:
+        if conn is not None:
+            conn.close()
+
+def insert_abdu_course(login_list):
+     """ insert multiple vendors into the vendors table  """
+     sql = "INSERT INTO courses(course_number, term, title, instructor, instructor_netid, piazza_nid) VALUES(%s, %s, %s, %s, %s, %s)"
+
+     conn = None
+     try:
+         params = BaseConfig()
+         host_ = params.DB_SERVICE
+         port_ = params.DB_PORT
+         database_ = params.DB_NAME
+         user_ = params.DB_USER
+         password_ = params.DB_PASS
+         conn = psycopg2.connect(host=host_, database=database_, user=user_, password=password_, port=port_)
+
+         cur = conn.cursor()
+         cur.executemany(sql, login_list)
+         conn.commit()
+         cur.close()
+
+     except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+     finally:
+        if conn is not None:
+            conn.close()
+
+def insert_abdu(login_list):
+     """ insert multiple vendors into the vendors table  """
+     sql = "INSERT INTO faculty(netid, firstname, lastname, email, dept, term, course_number) VALUES(%s, %s, %s, %s, %s, %s, %s)"
+
+     conn = None
+     try:
+         params = BaseConfig()
+         host_ = params.DB_SERVICE
+         port_ = params.DB_PORT
+         database_ = params.DB_NAME
+         user_ = params.DB_USER
+         password_ = params.DB_PASS
+         conn = psycopg2.connect(host=host_, database=database_, user=user_, password=password_, port=port_)
+
+         cur = conn.cursor()
+         cur.executemany(sql, login_list)
+         conn.commit()
+         cur.close()
+
+     except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+     finally:
+        if conn is not None:
+            conn.close()
+
+def insert_abdu_login(login_list):
+     """ insert multiple vendors into the vendors table  """
+     sql = "INSERT INTO login_details(netid, firstname, lastname, email) VALUES(%s, %s, %s, %s)"
+
+     conn = None
+     try:
+         params = BaseConfig()
+         host_ = params.DB_SERVICE
+         port_ = params.DB_PORT
+         database_ = params.DB_NAME
+         user_ = params.DB_USER
+         password_ = params.DB_PASS
+         conn = psycopg2.connect(host=host_, database=database_, user=user_, password=password_, port=port_)
+
+         cur = conn.cursor()
+         cur.executemany(sql, login_list)
+         conn.commit()
+         cur.close()
+
+     except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+     finally:
+        if conn is not None:
+            conn.close()
 
 filename = 'ece_grad_students_netid_added.csv'
 login_list = sql_list(filename)
@@ -195,6 +300,14 @@ filename_2 = 'ece_faculty_netid_added.csv'
 login_list_2 = sql_list(filename_2)
 login_list_2.pop(0)
 
+filename_3 = 'ece_cs_faculty_term_course_added.csv'
+login_list_3 = sql_list(filename_3)
+login_list_3.pop(0)
+
+filename_4 = 'ece_cs_courses.csv'
+login_list_4 = sql_list(filename_4)
+login_list_4.pop(0)
+
 create_tables()
 #will not need this afterwards
 db.create_all()
@@ -202,5 +315,13 @@ db.create_all()
 insert_login_details(login_list)
 insert_login_details(login_list_2)
 insert_students(login_list)
+insert_faculty(login_list_3)
+insert_courses(login_list_4)
+login_list_7 = [('alawini', 'Abdussalam', 'Alawini', 'alawini@illinois.edu')]
+insert_abdu_login(login_list_7)
+login_list_6 = [('CS-411', '2019-su', 'Database System', 'Alawini, Abdussalam', 'alawini', 'jvl5vt2p49j72t')]
+insert_abdu_course(login_list_6)
+login_list_5 = [('alawini', 'Abdussalam', 'Alawini', 'alawini@illinois.edu', 'CS', '2019-su', 'CS-411')]
+insert_abdu(login_list_5)
 # insert_faculty(login_list_2)
 #     create_tables()
