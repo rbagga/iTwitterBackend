@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # run from the orchestrating-docker dir
 
-docker stop $(docker ps -aq)
-docker rm $(docker ps -aq)
-> ./web/logs/app.log
+docker-compose down
+rm ./web/logs/app.log ./web/logs/psql.log > /dev/null 2>&1
 
 docker-compose run web /usr/local/bin/python ./create_db.py
 docker-compose up --build
@@ -13,4 +12,4 @@ mkdir -p ./web/logs
 mkdir ./web/logs/$date
 docker cp orchestratingdocker_web_1:/code/logs/app.log ./web/logs/$date
 docker cp orchestratingdocker_postgres_1:/var/lib/postgresql/data/log/psql.log ./web/logs/$date
-docker-compose down
+docker stop $(docker ps -aq)

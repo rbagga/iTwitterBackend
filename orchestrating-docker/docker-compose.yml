@@ -10,9 +10,10 @@ services:
       - postgres:postgres
     volumes:
       - web-data:/usr/src/app/static
-    env_file: 
+      - ./web:/code
+    env_file:
       - .env
-    command: /usr/local/bin/gunicorn -w 2 -b :8000 app:app
+    command: /usr/local/bin/gunicorn -w 2 --threads=4 --worker-class=gthread --worker-tmp-dir /dev/shm -b :8000 app:app --reload --capture-output --enable-stdio-inheritance
 
   nginx:
     restart: always
@@ -34,6 +35,7 @@ services:
   postgres:
     restart: always
     image: postgres:latest
+    command: postgres -c logging_collector=on -c log_destination=stderr -c log_statement=all -c log_filename=psql.log -c log_truncate_on_rotation=on -c log_lock_waits=on -c log_line_prefix='%m [Session:%c] {TID:%x} '
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:

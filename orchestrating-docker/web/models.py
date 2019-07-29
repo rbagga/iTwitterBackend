@@ -61,18 +61,16 @@ class Upvotes(db.Model):
     def __init__(self, netid, qid):
         self.netid = netid
         self.qid = qid
-
-
 class Session(db.Model):
     __tablename__ = 'session'
-
-    sessionId = db.Column(db.Integer, primary_key = True)
+    sessionsId = db.Column(db.Integer, primary_key = True)
+    sessionId = db.Column(db.Integer, nullable = True)
     # professor = db.Column(db.String, nullable = True)
     startTime = db.Column(db.DateTime, nullable = False)
     status = db.Column(db.String, nullable = True)
-    professor = db.Column(db.String, nullable = False)
-    classID = db.Column(db.String, nullable = False)
-    term  = db.Column(db.String, nullable = False)
+    professor = db.Column(db.String, primary_key = False)
+    classID = db.Column(db.String, primary_key = False)
+    term  = db.Column(db.String, primary_key = False)
 
     def __init__(self, professor, classID, term, status='Scheduled'):
         # self.sessionId = sessionId
@@ -102,6 +100,38 @@ class Responses(db.Model):
         self.response = response
         self.timestamp = datetime.datetime.now()
 
+class IclickerReponse(db.Model):
+    __tablename__ = 'studentquestionanswer'
+
+    reponse = db.Column(db.Integer, primary_key = True)
+    netid = db.Column(db.String, nullable = False)
+    sessionId = db.Column(db.Integer, nullable = False)
+    questionId = db.Column(db.Integer, nullable = False)
+    studentreponse = db.Column(db.String, nullable = True)
+    responsetimes = db.Column(db.DateTime, nullable = False)
+
+    def __init__(self, netid, sessionId, questionId, studentreponse):
+        self.netid = netid
+        self.sessionId = sessionId
+        self.questionId = questionId
+        self.studentreponse = studentreponse
+        self.responsetimes = datetime.datetime.now()
+
+class Registration(db.Model):
+    __tablename__ = 'registrationtable'
+
+    registerid = db.Column(db.Integer, primary_key = True)
+    netid = db.Column(db.String, nullable = False)
+    classId = db.Column(db.String, nullable = False)
+    term = db.Column(db.String, nullable = False)
+    registertimes = db.Column(db.DateTime, nullable = False)
+
+    def __init__(self, netid, classId, term):
+        self.netid = netid
+        self.classId = classId
+        self.term = term
+        self.registertimes = datetime.datetime.now()
+
 
 class InstrQuestion(db.Model):
     __tablename__ = 'instrquestions'
@@ -113,15 +143,18 @@ class InstrQuestion(db.Model):
     optionC = db.Column(db.String, nullable = True)
     optionD = db.Column(db.String, nullable = True)
     answer = db.Column(db.String, nullable = False)
+    #sessionId number between 1 - 41, total number of lecture in semester
+    sessionId = db.Column(db.Integer, nullable = True)
     date_posted = db.Column(db.DateTime, nullable = False)
 
-    def __init__(self, ques, answer, a, b=None, c=None, d=None):
+    def __init__(self, ques, answer, optionA, sessionId ,optionB='None', optionC='None', optionD='None'):
         self.ques = ques
-        self.optionA = a
-        self.optionB = b
-        self.optionC = c
-        self.optionD = d
+        self.optionA = optionA
+        self.optionB = optionB
+        self.optionC = optionC
+        self.optionD = optionD
         self.answer = answer
+        self.sessionId = sessionId
         self.date_posted = datetime.datetime.now()
 
 class QuestionStatus(db.Model):
@@ -139,3 +172,26 @@ class QuestionStatus(db.Model):
         self.questionNum = questionNum
         self.startTime  = startTime
         self.endTime = endTime
+
+
+class Timestamp(db.Model):
+    __tablename__ = 'timestamp'
+
+    nextavailable = db.Column(db.Integer, primary_key = True, default = 0)
+
+    def __init__(self, nextavailable):
+        self.nextavailable = nextavailable
+
+class TimestampTest(db.Model):
+    __tablename__ = 'timestamptest'
+
+    key = db.Column(db.Integer, primary_key = True)
+    value = db.Column(db.String, nullable=True)
+    readts = db.Column(db.Integer, nullable=True, default = 0)
+    writets = db.Column(db.Integer, nullable=True, default = 0)
+
+    def __init__(self, key, value, readts, writets):
+        self.key = key
+        self.value = value
+        self.readts = readts
+        self.writets = writets
