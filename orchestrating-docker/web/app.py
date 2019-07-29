@@ -169,22 +169,21 @@ class Iclickerreponse(Resource):
 #         # query = text('INSERT into questions(ques) VALUES (:question)')
 #         q_tuple = Question(question)
 #         db.session.add(q_tuple)
-
-        print(response)
-        #return jsonify({response: [dict(row) for row in json.dumps(response)]})
-        #return json.dumps(response)
-        return json.dumps([dict(r) for r in response])
-    @api.expect(post_question_model)
-    @api.doc(body=post_question_model)
-    def post(self):
-        params = api.payload
-        question = params.pop("question")
-        sessionid = params.pop("sessionid")
-        upvotes = params.pop("upvotes")
-        # query = text('INSERT into questions(ques) VALUES (:question)')
-        q_tuple = Question(question, sessionid, upvotes)
-        db.session.add(q_tuple)
-        db.session.commit()
+    #     print(response)
+    #     #return jsonify({response: [dict(row) for row in json.dumps(response)]})
+    #     #return json.dumps(response)
+    #     return json.dumps([dict(r) for r in response])
+    # @api.expect(post_question_model)
+    # @api.doc(body=post_question_model)
+    # def post(self):
+    #     params = api.payload
+    #     question = params.pop("question")
+    #     sessionid = params.pop("sessionid")
+    #     upvotes = params.pop("upvotes")
+    #     # query = text('INSERT into questions(ques) VALUES (:question)')
+    #     q_tuple = Question(question, sessionid, upvotes)
+    #     db.session.add(q_tuple)
+    #     db.session.commit()
 
 @q_api.route('/<netid>/<qid>')
 class UpvotesPost(Resource):
