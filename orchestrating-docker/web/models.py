@@ -172,3 +172,26 @@ class QuestionStatus(db.Model):
         self.questionNum = questionNum
         self.startTime  = startTime
         self.endTime = endTime
+
+
+class Timestamp(db.Model):
+    __tablename__ = 'timestamp'
+
+    nextavailable = db.Column(db.Integer, primary_key = True, default = 0)
+
+    def __init__(self, nextavailable):
+        self.nextavailable = nextavailable
+
+class TimestampTest(db.Model):
+    __tablename__ = 'timestamptest'
+
+    key = db.Column(db.Integer, primary_key = True)
+    value = db.Column(db.String, nullable=True)
+    readts = db.Column(db.Integer, nullable=True, default = 0)
+    writets = db.Column(db.Integer, nullable=True, default = 0)
+
+    def __init__(self, key, value, readts, writets):
+        self.key = key
+        self.value = value
+        self.readts = readts
+        self.writets = writets

@@ -292,6 +292,72 @@ def insert_abdu_login(login_list):
         if conn is not None:
             conn.close()
 
+def create_concurrency_triggers():
+    """ create concurrency triggers for all sql tables  """
+    commands = (
+        """
+        CREATE OR REPLACE FUNCTION trigger_update_timestamp()
+        RETURNS  trigger AS $$
+        BEGIN
+            -- RAISE NOTICE 'Checking ability to read/write';
+            IF NEW.readts IS NULL THEN
+            RAISE NOTICE 'Checking for ability to write';
+            IF OLD.writets>NEW.writets OR OLD.readts>NEW.writets THEN
+            RAISE EXCEPTION 'UPDATE concurrency: row has been read or written to by a more recent transaction';
+            ELSE
+            NEW.readts = OLD.readts;
+            END IF;
+            ELSEIF NEW.writets IS NULL THEN
+            RAISE NOTICE 'Checking for ability to read';
+            IF OLD.writets>NEW.readts THEN
+            RAISE EXCEPTION 'READ concurrency: row has been written to by a more recent transaction with timestamp %', OLD.writeTS;
+            ELSE
+            IF OLD.readts>NEW.readts THEN
+            NEW.readts = OLD.readts;
+            END IF;
+            NEW.writets = OLD.writets;
+            END IF;
+            END IF;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+        """,
+        """
+        CREATE TRIGGER update_timestamp
+        BEFORE UPDATE
+        ON timestamptest
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_update_timestamp();
+        """
+    )
+
+    conn = None
+    try:
+        params = BaseConfig()
+        host_ = params.DB_SERVICE
+        port_ = params.DB_PORT
+        database_ = params.DB_NAME
+        user_ = params.DB_USER
+        password_ = params.DB_PASS
+        conn = psycopg2.connect(host=host_, database=database_, user=user_, password=password_, port=port_)
+
+        cur = conn.cursor()
+
+        for command in commands:
+                cur.execute(command)
+
+        cur.close()
+        conn.commit()
+
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+
 filename = 'ece_grad_students_netid_added.csv'
 login_list = sql_list(filename)
 login_list.pop(0)
@@ -323,5 +389,9 @@ login_list_6 = [('CS-411', '2019-su', 'Database System', 'Alawini, Abdussalam', 
 insert_abdu_course(login_list_6)
 login_list_5 = [('alawini', 'Abdussalam', 'Alawini', 'alawini@illinois.edu', 'CS', '2019-su', 'CS-411')]
 insert_abdu(login_list_5)
+
+
+create_concurrency_triggers()
+
 # insert_faculty(login_list_2)
 #     create_tables()
