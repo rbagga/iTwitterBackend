@@ -251,17 +251,20 @@ class sessioninformation(Resource):
                 if not endsession:
                     #create hash for session_id
                     date = datetime.date.now()
-                    startTime = str(startTime)
-                    hash_key = startTime+term+course_number
+                    date_key = str(date)
+                    hash_key = date_key+term+course_number
                     #change hash function
                     sessionid = hashlib.sha256(hash_key).hexdigest()
-                    newSession = text('INSERT INTO session (sessionid, term, course_number, writets) VALUES (:sessionid, :term, :classid, :ts)')
-                    db.engine.execute(newSession, sessionid=sessionid, term=term, course_number=course_number, ts=ts)
-                    #pass this sessionid to every otehr table
-                    student_question_sessionid = text('INSERT INTO ')
+                    newSession = text('INSERT INTO session (sessionid, date, term, course_number, writets) VALUES (:sessionid, :date, :term, :classid, :ts)')
+                    db.engine.execute(newSession, sessionid=sessionid, date=date, term=term, course_number=course_number, ts=ts)
                     logger.info("got here")
                 else:
-                    questionInfo = text('SELECT * FROM questions WHERE sessionid = :sessionid')
+                    # post to piazza, then delete questions
+                    date = datetime.date.now()
+                    date_key = str(date)
+                    hash_key = date_key+term+course_number
+                    sessionid = hashlib.sha256(hash_key).hexdigest()
+                    questionInfo = text('SELECT * from questions WHERE sessionid = :sessionid')
                     responses = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
                     updatets = text('UPDATE questions SET readts = :ts WHERE sessionid = :sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionied)
@@ -269,11 +272,15 @@ class sessioninformation(Resource):
                     purgeQuestions = text('DELETE * FROM questions WHERE sessionid = :sessionid')
                     db.engine.execute(purgeQuestions, sessionid=sessionid)
 
-                    #post to piazza
                     #piazzaMigration(questions, networkid, netid, passwd)
+                    #delete the questions from the table
+                    #Jonathan
+                    endTransaction()
+                    return questions
 
-                    # endTransaction()
-                    # return questions
+
+
+                    # then delete session information?
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
