@@ -24,5 +24,5 @@ def piazzaMigration(questions="", networkid="", netid="", passwd=""):
 
     d = datetime.datetime.today()
 
-    #course.create_post('note','folder to put into', 'Lecture Question Overflow: ',d.month+'/'+d.day, "post content", False, False, True)
-    course.create_post('question', 'project', 'IGNORE: wasted potentials piazza api test', "post body", False, False, False) #test
+    #course.create_post('question', ('folder to put into', 'another folder'), 'Lecture Question Overflow: ',d.month+'/'+d.day, "post content", False, False, False)
+    course.create_post('question', ('project', 'other'), 'IGNORE: wasted potentials piazza api test', "post body", False, False, False) #test

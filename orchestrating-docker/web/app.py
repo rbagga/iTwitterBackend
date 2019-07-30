@@ -261,30 +261,24 @@ class sessioninformation(Resource):
                     student_question_sessionid = text('INSERT INTO ')
                     logger.info("got here")
                 else:
-                    # post to piazza, then delete questions
-
-                    questionInfo = text('SELECT * from questions WHERE sessionid = :sessionid')
+                    questionInfo = text('SELECT * FROM questions WHERE sessionid = :sessionid')
                     responses = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
                     updatets = text('UPDATE questions SET readts = :ts WHERE sessionid = :sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionied)
                     questions = json.dumps([dict(row) for row in responses])
+                    purgeQuestions = text('DELETE * FROM questions WHERE sessionid = :sessionid')
+                    db.engine.execute(purgeQuestions, sessionid=sessionid)
 
-
-
+                    #post to piazza
                     #piazzaMigration(questions, networkid, netid, passwd)
 
-                    endTransaction()
-                    return questions
-
-
-
-                    # then delete session information?
+                    # endTransaction()
+                    # return questions
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
             else:
                 break
-
         return "Session information has been updated successfully", 200
 
 @en_api.route('/')
