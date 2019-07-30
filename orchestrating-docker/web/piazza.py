@@ -9,33 +9,38 @@ import datetime, sys
 p = Piazza()
 
 def piazzaLogin(netid, passwd=""):
+    # return True
     try:
         p.user_login(netid+"@illinois.edu", passwd)
     except:
         return False
     return True
 
-def piazzaMigration(questions, networkid, netid, passwd):
-    if questions is None or not networkid or not netid or not passwd:
+def piazzaMigration(unpackedQuestions, networkid, netid, passwd):
+    if unpackedQuestions is None or not networkid or not netid or not passwd:
         logger.debug("piazzaMigration failure: one of the fields is empty")
         return
 
     try:
+        # unpack question tuple
+        questions = []
+        for item in unpackedQuestions:
+            questions.append(item[0])
+
         sys.stdout = mystdout = StringIO()
         for i, item in enumerate(questions,1):
             print(i, '. ' + item, sep='',end='\n')
 
-        folders = ('project', 'other')
+        folders = ('project',) # 'other')
         subject = 'Lecture Question Overflow: '+str(datetime.datetime.now().month)+'/'+str(datetime.datetime.now().day)
         content = mystdout.getvalue()
 
-        logger.info("Posting to piazza this content:")
-        logger.info(content)
+        #logger.info("Posting to piazza this content:")
+        #logger.info(content)
 
         p.user_login(netid+"@illinois.edu", passwd)
         course = p.network(networkid)
-        logger.info(content)
-        #course.create_post('question', folders, subject, content, False, False, False)
+        course.create_post('question', folders, subject, content, False, False, False)
 
         # test
         #p.user_login()
