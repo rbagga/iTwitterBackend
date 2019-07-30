@@ -70,18 +70,7 @@ def create_tables():
         writets INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY(netid, course_number, term)
         )
-        """,
         """
-        CREATE TABLE piazza (
-        q_number INTEGER,
-        date_posted TIMESTAMP without TIME ZONE NOT NULL,
-        course VARCHAR(255),
-        up_votes INTEGER,
-        sub_group VARCHAR(255),
-        readts INTEGER NOT NULL DEFAULT 0,
-        writets INTEGER NOT NULL DEFAULT 0,
-        PRIMARY KEY(q_number, date_posted, course)
-        ) """
         #create more tables below as necessary looking at the Relational Schema
     )
 

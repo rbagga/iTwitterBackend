@@ -38,7 +38,6 @@ jwt._set_error_handler_callbacks(api)
 #app.config['JWT_ACCESS_TOKEN_EXPIRES']=86400
 
 
-q_api = Namespace('student question', description = 'question operations')
 s_api = Namespace('Session Information', description = 'question session information operations')
 re_api = Namespace('Registration Information', description = 'Registration information operations')
 en_api = Namespace('Insert Questions', description = 'Insert a question operation')
@@ -48,18 +47,15 @@ iq_api = Namespace('instructor_question', description = 'instructor question ope
 lg_api = Namespace('login', description='Authentication')
 cu_api = Namespace('create_user', description = 'create/update user information')
 
-
-get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
-post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
-get_session_model = api.model('professor', {'professor': fields.String(description = 'professor ID to get'),
-                                'classId': fields.String(description = 'class ID to get'),
+#get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
+post_question_model = api.model('question', {'question': fields.String, 'netid': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
+get_session_model = api.model('session', {'classId': fields.String(description = 'class ID to get'),
                                 'term': fields.String(description = 'term to get')})
 post_session_model = api.model('professor', {'professor': fields.String,
                                 'term': fields.String,
-                                'classId': fields.String}
+                                'classId': fields.String,
+                                'endsession': fields.Boolean}
                                 )
-get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
-post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
 get_enterquestion_model = api.model('iqid', {'QuestionNumber': fields.Integer(description = 'Question number to get')})
 post_enterquestion_model = api.model('Question', {'Question': fields.String,
                                 'optionA': fields.String,
@@ -107,7 +103,7 @@ def add_claims_to_access_token(identity):
             updatets = text('UPDATE faculty SET readts = :ts WHERE netid=:netid')
             db.engine.execute(updatets, ts=ts, netid=identity)
             endTransaction()
-        except:
+        except psycopg2.Error:
             rollBack()
         else:
             break
@@ -234,7 +230,7 @@ class sessioninformation(Resource):
                 updatets = text('UPDATE session SET readts = :ts')
                 db.engine.execute(updatets, ts=ts)
                 endTransaction()
-            except:
+            except psycopg2.Error:
                 rollBack()
             else:
                 break
@@ -244,19 +240,41 @@ class sessioninformation(Resource):
     @api.doc(body=post_session_model)
     def post(self):
         params = api.payload
-        professor = params.pop("professor")
         term = params.pop("term")
         classid = params.pop("classId")
+        endsession = params.pop("endsession")
         while True:
             try:
                 ts = startTransaction()
-                newSession = text('INSERT INTO session (professor, term, classid, writets) VALUES (:professor, :term, :classid, :ts)')
-                db.engine.execute(newSession, professor=professor, term=term, classid=classid, ts=ts)
+                if not endsession:
+                    newSession = text('INSERT INTO session (term, classid, writets) VALUES (:professor, :term, :classid, :ts)')
+                    db.engine.execute(newSession, term=term, classid=classid, ts=ts)
+                    logger.info("got here")
+                else:
+                    # post to piazza, then delete questions
+
+                    questionInfo = text('SELECT * from questions WHERE sessionid = :sessionid')
+                    responses = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
+                    updatets = text('UPDATE questions SET readts = :ts WHERE sessionid = :sessionid')
+                    db.engine.execute(updatets, ts=ts, sessionid=sessionied)
+                    questions = json.dumps([dict(row) for row in responses])
+
+
+
+                    #piazzaMigration(questions, networkid, netid, passwd)
+
+                    endTransaction()
+                    return questions
+
+
+
+                    # then delete session information?
                 endTransaction()
-            except:
+            except psycopg2.Error:
                 rollBack()
             else:
                 break
+
         return "Session information has been updated successfully", 200
 
 @en_api.route('/')
@@ -271,7 +289,7 @@ class Insertquestion(Resource):
                 updatets = text('UPDATE iclickerquestion SET readts = :ts')
                 db.engine.execute(updatets, ts=ts)
                 endTransaction()
-            except:
+            except psycopg2.Error:
                 rollBack()
             else:
                 break
@@ -291,7 +309,7 @@ class Insertquestion(Resource):
                 newQuestion = text('INSERT INTO iclickerquestion (ques, answer, optiona, sessionid, writets) VALUES (:ques, :answer, :optiona, :sessionid, :ts)')
                 db.engine.execute(newQuestion, ques=ques, answer=answer, optiona=optiona, sessionid=sessionid, ts=ts)
                 endTransaction()
-            except:
+            except psycopg2.Error:
                 rollBack()
             else:
                 break
@@ -310,7 +328,7 @@ class StudentEnrollment(Resource):
                 enrollmentInfo = text('SELECT * from enrollment')
                 response = db.engine.execute(enrollmentInfo).fetchall()
                 endTransaction()
-            except:
+            except psycopg2.Error:
                 rollBack()
             else:
                 break
@@ -329,7 +347,7 @@ class StudentEnrollment(Resource):
                 newQuestion = text('INSERT INTO enrollment (netid, classid, term, writets) VALUES (:netid, :classid, :term, :ts)')
                 db.engine.execute(newQuestion, netid=netid, classid=classid, term=term, ts=ts)
                 endTransaction()
-            except:
+            except psycopg2.Error:
                 rollBack()
             else:
                 break
@@ -347,7 +365,7 @@ class Iclickerreponse(Resource):
                 updatets = text('UPDATE iclickerresponse SET readts = :ts')
                 db.engine.execute(updatets, ts=ts)
                 endTransaction()
-            except:
+            except psycopg2.Error:
                 rollBack()
             else:
                 break
@@ -367,28 +385,50 @@ class Iclickerreponse(Resource):
                 newQuestion = text('INSERT INTO iclickerresponse (netid, sessionid, questionid, studentresponse, writets) VALUES (:netid, :sessionid, :questionid, :studentresponse, :ts)')
                 db.engine.execute(newQuestion, netid=netid, sessionid=sessionid, questionid=questionid, studentresponse=studentresponse, ts=ts)
                 endTransaction()
-            except:
+            except psycopg2.Error:
                 rollBack()
             else:
                 break
         return "I-Clicker Response information has been updated successfully", 200
 
 
-# @q_api.route('/')
-# class StudentQuestionPost(Resource):
-#     def get(self):
-#         query = text('SELECT * from questions')
-#         response = db.engine.execute(query).fetchall()
-#         return jsonify({response: [dict(row) for row in response]})
+@q_api.route('/')
+class StudentQuestionPost(Resource):
+    def get(self):
+        global response
+        while True:
+            try:
+                ts = startTransaction()
+                questionInfo = text('SELECT * from questions')
+                response = db.engine.execute(questionInfo).fetchall()
+                updatets = text('UPDATE questions SET readts = :ts')
+                db.engine.execute(updatets, ts=ts)
+                endTransaction()
+            except psycopg2.Error:
+                rollBack()
+            else:
+                break
+        return json.dumps([dict(row) for row in response])
+    @api.expect(post_question_model)
+    @api.doc(body=post_question_model)
+    def post(self):
+        params = api.payload
+        ques = params.pop("question")
+        netid = params.pop("netid")
+        sessionid = params.pop("sessionid")
 
-#     @api.expect(post_question_model)
-#     @api.doc(body=post_question_model)
-#     def post(self):
-#         params = api.payload
-#         question = params.pop("question")
-#         # query = text('INSERT into questions(ques) VALUES (:question)')
-#         q_tuple = Question(question)
-#         db.session.add(q_tuple)
+        while True:
+            try:
+                ts = startTransaction()
+                newQuestion = text('INSERT INTO questions (ques, netid, sessionid, writets) VALUES (:netid, :ques, :sessionid, :ts)')
+                db.engine.execute(newQuestion, ques=ques, netid=netid, sessionid=sessionid, ts=ts)
+                endTransaction()
+            except psycopg2.Error:
+                rollBack()
+            else:
+                break
+            return "Student Question has been updated successfully", 200
+
     #     print(response)
     #     #return jsonify({response: [dict(row) for row in json.dumps(response)]})
     #     #return json.dumps(response)
@@ -436,7 +476,7 @@ class UpvotesPost(Resource):
                 update_query = text('UPDATE questions SET upvotes = :upvotes, writets=:ts  WHERE qid=:qid')
                 db.engine.execute(update_query, upvotes = new_votes, ts=ts, qid = qid)
                 endTransaction()
-            except:
+            except psycopg2.Error:
                 rollBack()
             else:
                 break
@@ -535,7 +575,7 @@ class StudentQuestion(Resource):
                 updatets = text('UPDATE questions SET readts = :ts WHERE qid = :questionid')
                 db.engine.execute(updatets, ts=ts, questionid=qid)
                 endTransaction()
-            except:
+            except psycopg2.Error:
                 rollBack()
             else:
                 break

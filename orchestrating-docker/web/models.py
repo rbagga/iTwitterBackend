@@ -33,6 +33,7 @@ class Question(db.Model):
     __tablename__ = 'questions'
 
     qid = db.Column(db.Integer, primary_key = True)
+    netid = db.Column(db.String, nullable = False)
     sessionid = db.Column(db.Integer)
     ques = db.Column(db.String, nullable = True)
     upvotes = db.Column(db.Integer, nullable = False, default = 0)
@@ -40,8 +41,9 @@ class Question(db.Model):
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
-    def __init__(self, ques, sessionid, upvotes, readts, writets):
+    def __init__(self, netid, ques, sessionid, upvotes, readts, writets):
         self.ques = ques
+        self.netid = netid
         self.sessionid = sessionid
         self.date_posted = datetime.datetime.now()
         self.upvotes = upvotes
@@ -76,20 +78,15 @@ class Upvotes(db.Model):
 
 class Session(db.Model):
     __tablename__ = 'session'
-    sessionsid = db.Column(db.Integer, primary_key = True)
-    sessionid = db.Column(db.Integer, nullable = True)
-    # professor = db.Column(db.String, nullable = True)
-    startTime = db.Column(db.DateTime, nullable = False)
-    status = db.Column(db.String, nullable = True, default='Scheduled')
-    professor = db.Column(db.String, primary_key = False)
-    classid = db.Column(db.String, primary_key = False)
-    term  = db.Column(db.String, primary_key = False)
+    sessionid = db.Column(db.Integer, primary_key = True)
+    startTime = db.Column(db.DateTime, nullable = True)
+    status = db.Column(db.String, nullable = False, default='Scheduled')
+    classid = db.Column(db.String, nullable = False)
+    term  = db.Column(db.String, nullable = True)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
     def __init__(self, professor, classid, term, status, readts, writets):
-        # self.sessionId = sessionId
-        self.professor = professor
         self.classid = classid
         '''change this later to be date time input by user!!!'''
         self.startTime = datetime.datetime.now()
@@ -97,27 +94,6 @@ class Session(db.Model):
         # self.lecture = lecture
         self.term = term
         self.status = status
-        self.readts = readts
-        self.writets = writets
-
-class Responses(db.Model):
-    __tablename__ = 'responses'
-
-    responseid = db.Column(db.Integer, primary_key = True)
-    netid = db.Column(db.String, nullable = False)
-    session = db.Column(db.String, nullable = False)
-    timestamp = db.Column(db.String, nullable = False)
-    question_num = db.Column(db.DateTime, nullable = False)
-    response = db.Column(db.String, nullable = True, default=False)
-    readts = db.Column(db.Integer, nullable=True, default = 0)
-    writets = db.Column(db.Integer, nullable=True, default = 0)
-
-    def __init__(self, netid, session, question_num, response, readts, writets):
-        self.netid = netid
-        self.session = session
-        self.question_num = question_num
-        self.response = response
-        self.timestamp = datetime.datetime.now()
         self.readts = readts
         self.writets = writets
 
