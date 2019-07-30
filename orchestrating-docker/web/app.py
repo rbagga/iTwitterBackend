@@ -63,8 +63,8 @@ post_enterquestion_model = api.model('Question', {'Question': fields.String,
                                 'lecturenumber': fields.Integer
                                 }
                                 )
-get_registration_model = api.model('netid', {'Netid': fields.String(description = 'Registration ID to get')})
-post_registration_model = api.model('Registration', {'netid': fields.String, 'classId' : fields.String, 'term': fields.String})
+get_enrollment_model = api.model('enrollment', {'course_number': fields.String})
+post_enrollment_model = api.model('Enrollment', {'netid': fields.String, 'course_number' : fields.String})
 get_iclickerreponse_model = api.model('reponse', {'Response Number': fields.Integer(description = 'Question number to get')})
 post_iclickerreponse_model = api.model('Response', {'Netid': fields.String,
                                 'sessionId': fields.Integer,
@@ -276,31 +276,21 @@ class sessioninformation(Resource):
                     date_key = str(datetime.datetime.now().month)+"-"+str(datetime.datetime.now().day)
                     hash_key = date_key+term+course_number
                     sessionid = hashlib.sha256(hash_key).hexdigest()
-                    questionInfo = text('SELECT * FROM questions WHERE sessionid = :sessionid')
-                    responses = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
-                    updatets = text('UPDATE questions SET readts = :ts WHERE sessionid = :sessionid')
+                    questionInfo = text('SELECT ques FROM questions WHERE sessionid = :sessionid')
+                    questions = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
+                    updatets = text('UPDATE student_question SET readts = :ts WHERE sessionid = :sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid)
-                    questions = json.dumps([dict(row) for row in responses])
-                    purgeQuestions = text('DELETE * FROM questions WHERE sessionid = :sessionid')
+                    #questions = json.dumps([dict(row) for row in responses])
+                    purgeQuestions = text('DELETE FROM student_question WHERE sessionid = :sessionid')
                     db.engine.execute(purgeQuestions, sessionid=sessionid)
 
-                    getNetwork = text('SELECT piazza_nid FROM courses WHERE course_number = :course_number, term = :term')
-                    networkid = db.engine.execute(getNetwork, course_number=course_number, term=term).fetchone().scalar()
-
-                    courseInfo = text('SELECT * FROM courses WHERE course_number = :course_number, term = :term')
-                    response = db.engine.execute(courseInfo, course_number=course_number, term=term).fetchone()
+                    # get networkid, netid and password of a student
+                    courseInfo = text('SELECT piazza_nid, piazza_netid, piazza_passwd FROM courses WHERE course_number = :course_number, term = :term')
+                    piazza_nid, piazza_netid, piazza_passwd = db.engine.execute(courseInfo, course_number=course_number, term=term).fetchone()
                     updatets = text('UPDATE courses SET readts = :ts WHERE course_number = :course_number, term = :term')
                     db.engine.execute(updatets, ts=ts, course_number=course_number, term=term)
 
-                    # get netid and password of a student
-
-
-                    #piazzaMigration(questions, networkid, netid, passwd)
-
-                    endTransaction()
-                    return questions
-
-
+                    piazzaMigration(questions, piazza_nid, piazza_netid, piazza_passwd)
 
                     # then delete session information?
                 endTransaction()
@@ -351,15 +341,17 @@ class Insertquestion(Resource):
 
 @re_api.route('/')
 class StudentEnrollment(Resource):
+    @jwt_required
     def get(self):
+        netid = get_jwt_identity()
         global response
         while True:
             try:
                 ts = startTransaction()
-                enrollmentInfo = text('SELECT * from enrollment')
-                response = db.engine.execute(enrollmentInfo).fetchall()
-                updatets = text('UPDATE enrollment SET readts = :ts')
-                db.engine.execute(updatets, ts=ts)
+                enrollmentInfo = text('SELECT * FROM enrollment WHERE netid=:netid')
+                response = db.engine.execute(enrollmentInfo, netid=netid).fetchall()
+                updatets = text('UPDATE enrollment SET readts = :ts WHERE netid=:netid')
+                db.engine.execute(updatets, ts=ts, netid=netid)
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -367,18 +359,22 @@ class StudentEnrollment(Resource):
                 break
         return json.dumps([dict(row) for row in response])
 
-    @api.expect(post_registration_model)
-    @api.doc(body=post_registration_model)
+    @api.expect(post_enrollment_model)
+    @api.doc(body=post_enrollment_model)
+    @jwt_required
     def post(self):
         params = api.payload
-        netid = params.pop("netid")
-        classid = params.pop("classId")
-        term = params.pop("term")
+        netid = get_jwt_identity()
+        course_number = params.pop("course_number")
+        term = get_term()
         while True:
             try:
                 ts = startTransaction()
-                newQuestion = text('INSERT INTO enrollment (netid, classid, term, writets) VALUES (:netid, :classid, :term, :ts)')
-                db.engine.execute(newQuestion, netid=netid, classid=classid, term=term, ts=ts)
+                newEnrollment = text('INSERT INTO enrollment (netid, course_number, term, writets) VALUES (:netid, :course_number, :term, :ts)')
+                db.engine.execute(newEnrollment, netid=netid, course_number=course_number, term=term, ts=ts)
+                # Sets piazza netid for this course only if it is null
+                updatePiazzaNetid = text('UPDATE courses SET piazza_netid=:netid, writets=:ts WHERE course_number=:course_number, term=:term, piazza_netid IS NULL')
+                db.engine.execute(updatePiazzaNetid, netid=netid, ts=ts, course_number=course_number, term=term)
                 endTransaction()
             except psycopg2.Error:
                 rollBack()

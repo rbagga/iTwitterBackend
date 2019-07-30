@@ -62,16 +62,6 @@ def create_tables():
         -- ON UPDATE CASCADE
         -- ON DELETE CASCADE
         )
-        """,
-        """
-        CREATE TABLE s_take (
-        netid VARCHAR(255),
-        course_number VARCHAR(255),
-        term VARCHAR(255),
-        readts INTEGER NOT NULL DEFAULT 0,
-        writets INTEGER NOT NULL DEFAULT 0,
-        PRIMARY KEY(netid, course_number, term)
-        )
         """
         #create more tables below as necessary looking at the Relational Schema
     )

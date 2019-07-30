@@ -112,11 +112,9 @@ class IClickerReponse(db.Model):
 class Enrollment(db.Model):
     __tablename__ = 'enrollment'
 
-    # registerid = db.Column(db.Integer, primary_key = True)
     netid = db.Column(db.String, primary_key=True)
     course_number = db.Column(db.String, primary_key=True)
-    term = db.Column(db.String, nullable = False)
-    # registertimes = db.Column(db.DateTime, nullable = False)
+    term = db.Column(db.String, primary_key=True)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
@@ -124,7 +122,6 @@ class Enrollment(db.Model):
         self.netid = netid
         self.course_number = course_number
         self.term = term
-        # self.registertimes = datetime.datetime.now()
         self.readts = readts
         self.writets = writets
 
