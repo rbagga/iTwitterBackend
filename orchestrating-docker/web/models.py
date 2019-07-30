@@ -34,7 +34,7 @@ class Question(db.Model):
 
     qid = db.Column(db.Integer, primary_key = True)
     # netid = db.Column(db.String, nullable = False)
-    sessionid = db.Column(db.String, primary_key = True)
+    sessionid = db.Column(db.String, db.ForeignKey('session.sessionid') ,primary_key = True)
     ques = db.Column(db.String, nullable = True)
     upvotes = db.Column(db.Integer, nullable = False, default = 0)
     date_posted = db.Column(db.DateTime, nullable = True)
@@ -56,7 +56,7 @@ class Upvotes(db.Model):
 
     netid = db.Column(db.String, primary_key = True)
     qid = db.Column(db.Integer, primary_key = True)
-    sessionid = db.Column(db.String, primary_key = True)
+    sessionid = db.Column(db.String, db.ForeignKey('session.sessionid'), primary_key = True)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
@@ -93,17 +93,17 @@ class IClickerReponse(db.Model):
 
     response = db.Column(db.Integer)
     netid = db.Column(db.String, primary_key=True)
-    sessionid = db.Column(db.String, primary_key=True)
-    questionid = db.Column(db.Integer, primary_key=True)
+    sessionid = db.Column(db.String, db.ForeignKey('session.sessionid'), primary_key=True)
+    iqid = db.Column(db.Integer, primary_key=True)
     # studentreponse = db.Column(db.String, nullable = True)
     responsetime = db.Column(db.DateTime, nullable = False)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
-    def __init__(self, netid, sessionid, questionid, response, readts, writets):
+    def __init__(self, netid, sessionid, iqid, response, readts, writets):
         self.netid = netid
         self.sessionid = sessionid
-        self.questionid = questionid
+        self.iqid = iqid
         # self.studentreponse = studentreponse
         self.responsetimes = datetime.datetime.now()
         self.readts = readts
@@ -115,7 +115,7 @@ class Enrollment(db.Model):
     # registerid = db.Column(db.Integer, primary_key = True)
     netid = db.Column(db.String, primary_key=True)
     course_number = db.Column(db.String, primary_key=True)
-    term = db.Column(db.String, nullable = False)
+    term = db.Column(db.String, primary_key=True)
     # registertimes = db.Column(db.DateTime, nullable = False)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
@@ -140,7 +140,7 @@ class IClickerQuestion(db.Model):
     optiond = db.Column(db.String, nullable = True)
     answer = db.Column(db.String, nullable = False)
     #sessionId number between 1 - 41, total number of lecture in semester
-    sessionid = db.Column(db.Integer, primary_key = True)
+    sessionid = db.Column(db.Integer, db.ForeignKey('session.sessionid'), primary_key = True)
     startTime = db.Column(db.DateTime, nullable = False)
     endTime = db.Column(db.DateTime, nullable=False)
     readts = db.Column(db.Integer, nullable=True, default = 0)
