@@ -219,6 +219,9 @@ class login(Resource):
                         if not piazzaLogin(netid, password):
                             endTransaction()
                             abort(401, 'Login Failed: Student: Please use your Piazza login credentials')
+                        # enter student's piazza login info if they are picked by any of their courses
+                        enterPiazza = text('UPDATE enrollment SET piazza_passwd=:passwd, writets=:ts WHERE piazza_netid=:netid')
+                        response = db.engine.execute(enterPiazza, passwd=passwd, ts=ts, netid=netid)
                 else:
                     if not piazzaLogin(netid, password):
                         endTransaction()
@@ -283,10 +286,15 @@ class sessioninformation(Resource):
 
                     getNetwork = text('SELECT piazza_nid FROM courses WHERE course_number = :course_number, term = :term')
                     networkid = db.engine.execute(getNetwork, course_number=course_number, term=term).fetchone().scalar()
+
+                    courseInfo = text('SELECT * FROM courses WHERE course_number = :course_number, term = :term')
+                    response = db.engine.execute(courseInfo, course_number=course_number, term=term).fetchone()
                     updatets = text('UPDATE courses SET readts = :ts WHERE course_number = :course_number, term = :term')
                     db.engine.execute(updatets, ts=ts, course_number=course_number, term=term)
 
                     # get netid and password of a student
+
+
                     #piazzaMigration(questions, networkid, netid, passwd)
 
                     endTransaction()
@@ -348,10 +356,10 @@ class StudentEnrollment(Resource):
         while True:
             try:
                 ts = startTransaction()
-                updatets = text('UPDATE enrollment SET readts = :ts')
-                db.engine.execute(updatets, ts=ts)
                 enrollmentInfo = text('SELECT * from enrollment')
                 response = db.engine.execute(enrollmentInfo).fetchall()
+                updatets = text('UPDATE enrollment SET readts = :ts')
+                db.engine.execute(updatets, ts=ts)
                 endTransaction()
             except psycopg2.Error:
                 rollBack()

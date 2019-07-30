@@ -18,6 +18,8 @@ def create_tables():
         instructor VARCHAR(255),
         instructor_netid VARCHAR(255),
         piazza_nid VARCHAR(255) DEFAULT NULL,
+        piazza_netid VARCHAR(255) DEFAULT NULL,
+        piazza_passwd VARCHAR(255) DEFAULT NULL,
         readts INTEGER NOT NULL DEFAULT 0,
         writets INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY(course_number, term)
