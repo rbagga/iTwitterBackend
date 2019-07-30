@@ -53,9 +53,7 @@ cu_api = Namespace('create_user', description = 'create/update user information'
 post_question_model = api.model('question', {'question': fields.String, 'netid': fields.String, 'sessionid' : fields.Integer, 'upvotes': fields.Integer})
 get_session_model = api.model('session', {'classId': fields.String(description = 'class ID to get'),
                                 'term': fields.String(description = 'term to get')})
-post_session_model = api.model('professor', {'professor': fields.String,
-                                'term': fields.String,
-                                'course_number': fields.String,
+post_session_model = api.model('professor', {'course_number': fields.String,
                                 'endsession': fields.Boolean}
                                 )
 get_enterquestion_model = api.model('iqid', {'QuestionNumber': fields.Integer(description = 'Question number to get')})
@@ -124,6 +122,19 @@ def instructor_required(fn):
         else:
             return fn(*args, **kwargs)
     return wrapper
+
+def get_term():
+    date = datetime.datetime.today()
+    year = date.year
+    def get_semester(month, day):
+        if (month==8 and day>=27) or month>8:
+            return "fa"
+        if (month==5 and day>=13) or month>5:
+            return "su"
+        return "sp"
+    semester = get_semester(date.month, date.day)
+    return str(year)+"-"+semester
+
 
 @cu_api.route('/')
 class createuser(Resource):
@@ -240,41 +251,44 @@ class sessioninformation(Resource):
 
     @api.expect(post_session_model)
     @api.doc(body=post_session_model)
+    #@instructor_required
     def post(self):
         params = api.payload
-        term = params.pop("term")
-        course_number = params.pop("course_number")
+        term = get_term()
+        course_number = params.pop("course_number")  # change this to be gotten from table
         endsession = params.pop("endsession")
         while True:
             try:
                 ts = startTransaction()
                 if not endsession:
                     #create hash for session_id
-                    date = datetime.date.now()
-                    date_key = str(date)
+                    date_key = str(datetime.datetime.now().month)+"-"+str(datetime.datetime.now().day)
                     hash_key = date_key+term+course_number
                     #change hash function
                     sessionid = hashlib.sha256(hash_key).hexdigest()
                     newSession = text('INSERT INTO session (sessionid, date, term, course_number, writets) VALUES (:sessionid, :date, :term, :classid, :ts)')
-                    db.engine.execute(newSession, sessionid=sessionid, date=date, term=term, course_number=course_number, ts=ts)
-                    logger.info("got here")
+                    db.engine.execute(newSession, sessionid=sessionid, date=date_key, term=term, course_number=course_number, ts=ts)
                 else:
                     # post to piazza, then delete questions
-                    date = datetime.date.now()
-                    date_key = str(date)
+                    date_key = str(datetime.datetime.now().month)+"-"+str(datetime.datetime.now().day)
                     hash_key = date_key+term+course_number
                     sessionid = hashlib.sha256(hash_key).hexdigest()
-                    questionInfo = text('SELECT * from questions WHERE sessionid = :sessionid')
+                    questionInfo = text('SELECT * FROM questions WHERE sessionid = :sessionid')
                     responses = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
                     updatets = text('UPDATE questions SET readts = :ts WHERE sessionid = :sessionid')
-                    db.engine.execute(updatets, ts=ts, sessionid=sessionied)
+                    db.engine.execute(updatets, ts=ts, sessionid=sessionid)
                     questions = json.dumps([dict(row) for row in responses])
                     purgeQuestions = text('DELETE * FROM questions WHERE sessionid = :sessionid')
                     db.engine.execute(purgeQuestions, sessionid=sessionid)
 
+                    getNetwork = text('SELECT piazza_nid FROM courses WHERE course_number = :course_number, term = :term')
+                    networkid = db.engine.execute(getNetwork, course_number=course_number, term=term).fetchone().scalar()
+                    updatets = text('UPDATE courses SET readts = :ts WHERE course_number = :course_number, term = :term')
+                    db.engine.execute(updatets, ts=ts, course_number=course_number, term=term)
+
+                    # get netid and password of a student
                     #piazzaMigration(questions, networkid, netid, passwd)
-                    #delete the questions from the table
-                    #Jonathan
+
                     endTransaction()
                     return questions
 
