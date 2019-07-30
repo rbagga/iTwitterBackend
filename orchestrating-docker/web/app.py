@@ -55,9 +55,7 @@ cu_api = Namespace('create_user', description = 'create/update user information'
 post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.String, 'upvotes': fields.Integer})
 get_session_model = api.model('session', {'classId': fields.String(description = 'class ID to get'),
                                 'term': fields.String(description = 'term to get')})
-post_session_model = api.model('professor', {'professor': fields.String,
-                                'term': fields.String,
-                                'course_number': fields.String,
+post_session_model = api.model('professor', {'course_number': fields.String,
                                 'endsession': fields.Boolean}
                                 )
 get_enterquestion_model = api.model('iqid', {'QuestionNumber': fields.Integer(description = 'Question number to get')})
@@ -137,6 +135,19 @@ def instructor_required(fn):
         else:
             return fn(*args, **kwargs)
     return wrapper
+
+def get_term():
+    date = datetime.datetime.today()
+    year = date.year
+    def get_semester(month, day):
+        if (month==8 and day>=27) or month>8:
+            return "fa"
+        if (month==5 and day>=13) or month>5:
+            return "su"
+        return "sp"
+    semester = get_semester(date.month, date.day)
+    return str(year)+"-"+semester
+
 
 @cu_api.route('/')
 class createuser(Resource):
@@ -253,26 +264,26 @@ class sessioninformation(Resource):
 
     @api.expect(post_session_model)
     @api.doc(body=post_session_model)
+    #@instructor_required
     def post(self):
         params = api.payload
-        term = params.pop("term")
-        course_number = params.pop("course_number")
+        term = get_term()
+        course_number = params.pop("course_number")  # change this to be gotten from table
         endsession = params.pop("endsession")
         while True:
             try:
                 ts = startTransaction()
                 if not endsession:
                     #create hash for session_id
-                    date = datetime.date.now()
-                    startTime = str(startTime)
-                    hash_key = startTime+term+course_number
+                    date_key = str(datetime.datetime.now().month)+"-"+str(datetime.datetime.now().day)
+                    hash_key = date_key+term+course_number
                     #change hash function
                     sessionid = hashlib.sha256(hash_key).hexdigest()
                     newSession = text('INSERT INTO session (sessionid, term, course_number, writets) VALUES (:sessionid, :term, :course_number, :ts)')
                     db.engine.execute(newSession, sessionid=sessionid, term=term, course_number=course_number, ts=ts)
                     #pass this sessionid to every otehr table
                     # student_question_sessionid = text('INSERT INTO ')
-                    logger.info("got here")
+                    # logger.info("got here")
                 else:
                     questionInfo = text('SELECT * FROM student_question WHERE sessionid = :sessionid')
                     responses = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
@@ -282,11 +293,20 @@ class sessioninformation(Resource):
                     purgeQuestions = text('DELETE * FROM student_question WHERE sessionid = :sessionid')
                     db.engine.execute(purgeQuestions, sessionid=sessionid)
 
-                    #post to piazza
+                    getNetwork = text('SELECT piazza_nid FROM courses WHERE course_number = :course_number, term = :term')
+                    networkid = db.engine.execute(getNetwork, course_number=course_number, term=term).fetchone().scalar()
+                    updatets = text('UPDATE courses SET readts = :ts WHERE course_number = :course_number, term = :term')
+                    db.engine.execute(updatets, ts=ts, course_number=course_number, term=term)
+
+                    # get netid and password of a student
                     #piazzaMigration(questions, networkid, netid, passwd)
 
-                    # endTransaction()
-                    # return questions
+                    endTransaction()
+                    return questions
+
+
+
+                    # then delete session information?
                 endTransaction()
             except psycopg2.Error:
                 rollBack()

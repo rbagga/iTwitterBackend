@@ -2,6 +2,7 @@
 
 
 from piazza_api import Piazza
+from logger import logger
 import datetime
 
 p = Piazza()
@@ -13,16 +14,15 @@ def piazzaLogin(netid, passwd=""):
         return False
     return True
 
-def piazzaMigration(questions="", networkid="", netid="", passwd=""):
-    # if questions, netid, networkid, or password are empty return
-    # else:
-    #p.user_login(netid+"@illinois.edu", passwd)
-    p.user_login() #test
+def piazzaMigration(questions, networkid, netid, passwd):
+    if questions is None or not networkid or not netid or not passwd:
+        logger.debug("piazzaMigration failure: one of the fields is empty")
+        return
+    p.user_login(netid+"@illinois.edu", passwd)
+    course = p.network(networkid)
+    course.create_post('question', ('folder to put into', 'another folder'), 'Lecture Question Overflow: '+str(datetime.datetime.now().month)+'/'+str(datetime.datetime.now().day), "post content", False, False, False)
 
-    #course = p.network(networkid)
-    course = p.network("jvl5vt2p49j72t") #test
-
-    d = datetime.datetime.today()
-
-    #course.create_post('question', ('folder to put into', 'another folder'), 'Lecture Question Overflow: ',d.month+'/'+d.day, "post content", False, False, False)
-    course.create_post('question', ('project', 'other'), 'IGNORE: wasted potentials piazza api test', "post body", False, False, False) #test
+    # test
+    #p.user_login()
+    #course = p.network("jvl5vt2p49j72t")
+    #course.create_post('question', ('project', 'other'), 'IGNORE: wasted potentials piazza api test', "post body", False, False, False)

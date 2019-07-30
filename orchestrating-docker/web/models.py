@@ -71,7 +71,7 @@ class Session(db.Model):
     __tablename__ = 'session'
 
     sessionid = db.Column(db.String, nullable=False)
-    startTime = db.Column(db.DateTime, primary_key=True)
+    date = db.Column(db.String, primary_key=True)
     # status = db.Column(db.String, nullable = False, default='Scheduled')
     course_number = db.Column(db.String, nullable = False)
     term  = db.Column(db.String, nullable = True)
@@ -81,7 +81,7 @@ class Session(db.Model):
     def __init__(self, sessionid, course_number, term, readts, writets):
         self.course_number = course_number
         '''change this later to be date time input by user!!!'''
-        self.startTime = datetime.datetime.now()
+        self.date = str(datetime.datetime.now().month)+"-"+str(datetime.datetime.now().day)
         self.sessionid = sessionid
         self.term = term
         # self.status = status
