@@ -250,13 +250,15 @@ class sessioninformation(Resource):
                 ts = startTransaction()
                 if not endsession:
                     #create hash for session_id
-                    startTime = datetime.datetime.now()
+                    date = datetime.date.now()
                     startTime = str(startTime)
                     hash_key = startTime+term+course_number
                     #change hash function
                     sessionid = hashlib.sha256(hash_key).hexdigest()
                     newSession = text('INSERT INTO session (sessionid, term, course_number, writets) VALUES (:sessionid, :term, :classid, :ts)')
                     db.engine.execute(newSession, sessionid=sessionid, term=term, course_number=course_number, ts=ts)
+                    #pass this sessionid to every otehr table
+                    student_question_sessionid = text('INSERT INTO ')
                     logger.info("got here")
                 else:
                     # post to piazza, then delete questions
