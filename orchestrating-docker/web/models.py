@@ -30,90 +30,81 @@ class Post(db.Model):
 
 #refers to questions asked by students
 class Question(db.Model):
-    __tablename__ = 'questions'
+    __tablename__ = 'student_question'
 
     qid = db.Column(db.Integer, primary_key = True)
-    netid = db.Column(db.String, nullable = False)
-    sessionid = db.Column(db.Integer)
+    # netid = db.Column(db.String, nullable = False)
+    sessionid = db.Column(db.String, primary_key = True)
     ques = db.Column(db.String, nullable = True)
     upvotes = db.Column(db.Integer, nullable = False, default = 0)
     date_posted = db.Column(db.DateTime, nullable = True)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
-    def __init__(self, netid, ques, sessionid, upvotes, readts, writets):
+    def __init__(self, ques, upvotes, readts, writets):
         self.ques = ques
-        self.netid = netid
+        # self.netid = netid
         self.sessionid = sessionid
         self.date_posted = datetime.datetime.now()
         self.upvotes = upvotes
         self.readts = readts
         self.writets = writets
 
-# class Question(db.Model):
-#     __tablename__ = 'questions'
-#
-#     qid = db.Column(db.Integer, primary_key = True)
-#     ques = db.Column(db.String, nullable = True)
-#     date_posted = db.Column(db.DateTime, nullable = True)
-#
-#     def __init__(self, ques):
-#         self.ques = ques
-#         self.date_posted = datetime.datetime.now()
-
 
 class Upvotes(db.Model):
     __tablename__ = 'upvotes'
 
     netid = db.Column(db.String, primary_key = True)
-    qid = db.Column(db.Integer, nullable = False)
+    qid = db.Column(db.Integer, primary_key = True)
+    sessionid = db.Column(db.String, primary_key = True)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
-    def __init__(self, netid, qid, readts, writets):
+    def __init__(self, netid, qid, sessionid, readts, writets):
         self.netid = netid
         self.qid = qid
+        self.sessionid = sessionid
         self.readts = readts
         self.writets = writets
 
 class Session(db.Model):
     __tablename__ = 'session'
-    sessionid = db.Column(db.Integer, primary_key = True)
-    startTime = db.Column(db.DateTime, nullable = True)
-    status = db.Column(db.String, nullable = False, default='Scheduled')
-    classid = db.Column(db.String, nullable = False)
+
+    sessionid = db.Column(db.String, nullable=False)
+    startTime = db.Column(db.DateTime, primary_key=True)
+    # status = db.Column(db.String, nullable = False, default='Scheduled')
+    course_number = db.Column(db.String, nullable = False)
     term  = db.Column(db.String, nullable = True)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
-    def __init__(self, professor, classid, term, status, readts, writets):
-        self.classid = classid
+    def __init__(self, sessionid, course_number, term, readts, writets):
+        self.course_number = course_number
         '''change this later to be date time input by user!!!'''
         self.startTime = datetime.datetime.now()
-
-        # self.lecture = lecture
+        self.sessionid = sessionid
         self.term = term
-        self.status = status
+        # self.status = status
         self.readts = readts
         self.writets = writets
 
 class IClickerReponse(db.Model):
     __tablename__ = 'iclickerresponse'
 
-    reponse = db.Column(db.Integer, primary_key = True)
-    netid = db.Column(db.String, nullable = False)
-    sessionid = db.Column(db.Integer, nullable = False)
-    questionid = db.Column(db.Integer, nullable = False)
-    studentreponse = db.Column(db.String, nullable = True)
-    responsetimes = db.Column(db.DateTime, nullable = False)
+    response = db.Column(db.Integer)
+    netid = db.Column(db.String, primary_key=True)
+    sessionid = db.Column(db.String, primary_key=True)
+    questionid = db.Column(db.Integer, primary_key=True)
+    # studentreponse = db.Column(db.String, nullable = True)
+    responsetime = db.Column(db.DateTime, nullable = False)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
-    def __init__(self, netid, sessionid, questionid, studentreponse, readts, writets):
+    def __init__(self, netid, sessionid, questionid, response, readts, writets):
         self.netid = netid
         self.sessionid = sessionid
         self.questionid = questionid
-        self.studentreponse = studentreponse
+        # self.studentreponse = studentreponse
         self.responsetimes = datetime.datetime.now()
         self.readts = readts
         self.writets = writets
@@ -121,19 +112,19 @@ class IClickerReponse(db.Model):
 class Enrollment(db.Model):
     __tablename__ = 'enrollment'
 
-    registerid = db.Column(db.Integer, primary_key = True)
-    netid = db.Column(db.String, nullable = False)
-    classid = db.Column(db.String, nullable = False)
+    # registerid = db.Column(db.Integer, primary_key = True)
+    netid = db.Column(db.String, primary_key=True)
+    course_number = db.Column(db.String, primary_key=True)
     term = db.Column(db.String, nullable = False)
-    registertimes = db.Column(db.DateTime, nullable = False)
+    # registertimes = db.Column(db.DateTime, nullable = False)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
-    def __init__(self, netid, classid, term, readts, writets):
+    def __init__(self, netid, course_number, term, readts, writets):
         self.netid = netid
-        self.classid = classid
+        self.course_number = course_number
         self.term = term
-        self.registertimes = datetime.datetime.now()
+        # self.registertimes = datetime.datetime.now()
         self.readts = readts
         self.writets = writets
 
@@ -149,12 +140,13 @@ class IClickerQuestion(db.Model):
     optiond = db.Column(db.String, nullable = True)
     answer = db.Column(db.String, nullable = False)
     #sessionId number between 1 - 41, total number of lecture in semester
-    sessionid = db.Column(db.Integer, nullable = True)
-    date_posted = db.Column(db.DateTime, nullable = False)
+    sessionid = db.Column(db.Integer, primary_key = True)
+    startTime = db.Column(db.DateTime, nullable = False)
+    endTime = db.Column(db.DateTime, nullable=False)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
-    def __init__(self, ques, answer, optiona, sessionid, optionb, optionc, optiond, readts, writets):
+    def __init__(self, ques, answer, optiona, sessionid, optionb, optionc, optiond, startTime, endTime, readts, writets):
         self.ques = ques
         self.optiona = optiona
         self.optionb = optionb
@@ -162,30 +154,10 @@ class IClickerQuestion(db.Model):
         self.optiond = optiond
         self.answer = answer
         self.sessionid = sessionid
-        self.date_posted = datetime.datetime.now()
+        self.startTime = startTime
+        self.endTime = endTime
         self.readts = readts
         self.writets = writets
-
-class QuestionStatus(db.Model):
-    __tablename__ = 'questionstatus'
-
-    qstatusid = db.Column(db.Integer, primary_key = True)
-    sessionid = db.Column(db.Integer, nullable=True, default=None)
-    questionnum = db.Column(db.Integer, nullable=True)
-    starttime = db.Column(db.DateTime, nullable = True, default=None)
-    endtime = db.Column(db.DateTime, nullable = True, default=None)
-    readts = db.Column(db.Integer, nullable=True, default = 0)
-    writets = db.Column(db.Integer, nullable=True, default = 0)
-
-    def __init__(self, questionnum, sessionid, starttime, endtime, readts, writets):
-        self.questionstatuskey = db.Column(db.Integer, primary_key = True)
-        self.sessionid = sessionid
-        self.questionnum = questionnum
-        self.starttime  = starttime
-        self.endtime = endtime
-        self.readts = readts
-        self.writets = writets
-
 
 class Timestamp(db.Model):
     __tablename__ = 'timestamp'
