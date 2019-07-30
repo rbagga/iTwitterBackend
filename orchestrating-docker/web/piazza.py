@@ -34,7 +34,8 @@ def piazzaMigration(questions, networkid, netid, passwd):
 
         p.user_login(netid+"@illinois.edu", passwd)
         course = p.network(networkid)
-        course.create_post('question', folders, subject, content, False, False, False)
+        logger.info(content)
+        #course.create_post('question', folders, subject, content, False, False, False)
 
         # test
         #p.user_login()
