@@ -13,7 +13,7 @@ import psycopg2
 import hashlib
 
 app = Flask(__name__)
-CORS(app, supports_credentials = True)
+CORS(app)
 app.config.from_object(BaseConfig)
 db = SQLAlchemy(app)
 
@@ -67,11 +67,7 @@ post_enterquestion_model = api.model('Question', {'Question': fields.String,
 get_enrollment_model = api.model('enrollment', {'course_number': fields.String})
 post_enrollment_model = api.model('Enrollment', {'course_number' : fields.String})
 get_iclickerresponse_model = api.model('get_iclicker_response', {'iqid': fields.Integer(description = 'Question number to get'), 'sessionid':fields.String})
-post_iclickerresponse_model = api.model('iClicker_post_responses', {'netid': fields.String,
-                                'sessionid': fields.String,
-                                'response': fields.String
-                                }
-                                )
+post_iclickerresponse_model = api.model('iClicker_post_responses', {'response': fields.String})
 login_model = api.model('login', {
     'netid': fields.String(description='netid', required=True),
     'password': fields.String(description='Password', required=True)
@@ -270,11 +266,12 @@ class login(Resource):
         token = create_access_token(identity=netid)
         return {'token': token}, 200
 
-@s_api.route('/<netid>')
+@s_api.route('/')
 class sessioninformation(Resource):
     @jwt_required
     def get(self):
         global response
+        # response = None
         netid = get_jwt_identity()
         while True:
             try:
@@ -285,6 +282,8 @@ class sessioninformation(Resource):
                     response = db.engine.execute(sessionInfo, sessionid=sessionid).fetchall()
                     updatets = text('UPDATE session SET readts = :ts WHERE sessionid=:sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid)
+                else:
+                    response = []
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -359,6 +358,16 @@ class sessioninformation(Resource):
                 db.engine.execute(purgeUpvotes, sessionid=sessionid)
 
                 #Grade responses for IClicker questions
+                total_questions_query = text('SELECT Count(*) FROM iclickerquestion WHERE sessionid = :sessionid')
+                total_questions = db.engine.execute(total_questions_query, sessionid=sessionid).scalar()
+                total_students_query = text('SELECT netid, Count(iqid) AS questions_answered FROM iclickerresponse WHERE sessionid = :sessionid GROUP BY netid')
+                total_students = db.engine.execute(total_students_query, sessionid=sessionid).fetchall()
+                for student in total_students:
+                    netid = student[0]
+                    answers = student[1]
+                    grade = answers/total_questions
+                    enrollment_grade_query = text('UPDATE enrollment SET grade=:grade, writets=:ts WHERE course_number=:course_number AND term=:term AND netid=:netid').fetchone()
+                    db.engine.execute(enrollment_grade_query, grade=grade, course_number=course_number, term=term, netid=netid, ts=ts)
 
                 purgeIClickerQuestions = text('DELETE FROM iclickerquestion WHERE sessionid = :sessionid')
                 db.engine.execute(purgeIClickerQuestions, sessionid=sessionid)
@@ -390,6 +399,8 @@ class Iclickerquestion(Resource):
                     response = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
                     updatets = text('UPDATE iclickerquestion SET readts = :ts WHERE sessionid = :sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid)
+                else:
+                    response = []
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -493,24 +504,23 @@ class StudentEnrollment(Resource):
                 break
         return "Enrollment information has been updated successfully", 200
 
-@iclkres_api.route('/')
-class Iclickerresponse(Resource):
-    @api.expect(get_iclickerresponse_model)
-    @api.doc(body=get_iclickerresponse_model)
-    #@instructor_required
-    def get(self):  ###why do we have this?
+@iclkres_api.route('/<iqid>')
+class Iclickerresponseget(Resource):
+    @jwt_required
+    def get(self, iqid):  ###why do we have this?
         global response
-        params = api.payload
-        iqid = params.pop("iqid")
-        sessionid = params.pop("sessionid")
-        # netid = params.pop("netid")
+        netid = get_jwt_identity()
         while True:
             try:
                 ts = startTransaction()
-                iclickerresponseInfo = text('SELECT * from iclickerresponse WHERE sessionid = :sessionid AND iqid = :iqid')
-                response = db.engine.execute(iclickerresponseInfo, sessionid=sessionid, iqid=iqid).fetchall()
-                updatets = text('UPDATE iclickerresponse SET readts = :ts WHERE sessionid = :sessionid AND iqid = :iqid')
-                db.engine.execute(updatets, ts=ts, sessionid=sessionid, iqid=iqid)
+                sessionid = get_sessionid_student(netid,ts)
+                if sessionid is not None:
+                    iclickerresponseInfo = text('SELECT * from iclickerresponse WHERE sessionid = :sessionid AND iqid = :iqid')
+                    response = db.engine.execute(iclickerresponseInfo, sessionid=sessionid, iqid=iqid).fetchall()
+                    updatets = text('UPDATE iclickerresponse SET readts = :ts WHERE sessionid = :sessionid AND iqid = :iqid')
+                    db.engine.execute(updatets, ts=ts, sessionid=sessionid, iqid=iqid)
+                else:
+                    response = []
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -518,36 +528,39 @@ class Iclickerresponse(Resource):
                 break
         return json.dumps([dict(row) for row in response])
 
+@iclkres_api.route('/')
+class Iclickerresponseput(Resource):
     @api.expect(post_iclickerresponse_model)
     @api.doc(body=post_iclickerresponse_model)
     @jwt_required
     def post(self):
         params = api.payload
         netid = get_jwt_identity()
-        sessionid = params.pop("sessionid")
         response = params.pop("response")
         while True:
             try:
                 ts = startTransaction()
-                check_table_empty = text('SELECT * FROM iclickerresponse WHERE sessionid = :sessionid')
-                table_entries = db.engine.execute(check_table_empty, sessionid=sessionid).fetchone()
-                #update the timestamp
-                updatets = text('UPDATE iclickerresponse SET readts = :ts WHERE sessionid = :sessionid')
-                db.engine.execute(updatets, ts=ts, sessionid=sessionid)
-                if table_entries is None:
-                    #table is empty
-                    iqid = 1
-                else:
-                    get_latest_qid = text('SELECT MAX(iqid) FROM iclickerresponse WHERE sessionid = :sessionid')
-                    latest_qid = db.engine.execute(latest_qid, sessionid=sessionid).scalar()
+                sessionid = get_sessionid_student(netid, ts)
+                if sessionid is not None:
+                    check_table_empty = text('SELECT * FROM iclickerresponse WHERE sessionid = :sessionid')
+                    table_entries = db.engine.execute(check_table_empty, sessionid=sessionid).fetchone()
                     #update the timestamp
                     updatets = text('UPDATE iclickerresponse SET readts = :ts WHERE sessionid = :sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid)
-                    iqid = latest_qid+1
+                    if table_entries is None:
+                        #table is empty
+                        iqid = 1
+                    else:
+                        get_latest_qid = text('SELECT MAX(iqid) FROM iclickerresponse WHERE sessionid = :sessionid')
+                        latest_qid = db.engine.execute(latest_qid, sessionid=sessionid).scalar()
+                        #update the timestamp
+                        updatets = text('UPDATE iclickerresponse SET readts = :ts WHERE sessionid = :sessionid')
+                        db.engine.execute(updatets, ts=ts, sessionid=sessionid)
+                        iqid = latest_qid+1
 
-                responsetime = datetime.datetime.now()
-                newQuestion = text('INSERT INTO iclickerresponse (netid, sessionid, response, iqid, responsetime, writets) VALUES (:netid, :sessionid, :response, :iqid, :responsetime, :ts)')
-                db.engine.execute(newQuestion, netid=netid, sessionid=sessionid, response=response, iqid=iqid, responsetime=responsetime, ts=ts)
+                    responsetime = datetime.datetime.now()
+                    newQuestion = text('INSERT INTO iclickerresponse (netid, sessionid, response, iqid, responsetime, writets) VALUES (:netid, :sessionid, :response, :iqid, :responsetime, :ts)')
+                    db.engine.execute(newQuestion, netid=netid, sessionid=sessionid, response=response, iqid=iqid, responsetime=responsetime, ts=ts)
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -651,21 +664,22 @@ class UpvotesPost(Resource):
 
                     update_query = text('UPDATE student_question SET upvotes = :upvotes, writets=:ts  WHERE qid=:qid AND sessionid=:sessionid')
                     db.engine.execute(update_query, upvotes = new_votes, ts=ts, qid = qid, sessionid=sessionid)
+                else:
+                    response = []
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
             else:
                 break
 
-@co_api.route('/')
+@co_api.route('/<term>')
 class Courses(Resource):
     @jwt_required
-    def get(self):
-        term = get_term()
+    def get(self, term):
         while True:
             try:
                 ts = startTransaction()
-                courseInfo = text('SELECT * FROM courses WHERE term=:term')
+                courseInfo = text('SELECT * FROM courses WHERE term=:term ORDER BY term')
                 response = db.engine.execute(courseInfo, term=term).fetchall()
                 updatets = text('UPDATE courses SET readts = :ts WHERE term=:term')
                 db.engine.execute(updatets, ts=ts, term=term)

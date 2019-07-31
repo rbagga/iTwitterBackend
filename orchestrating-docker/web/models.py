@@ -97,15 +97,17 @@ class Enrollment(db.Model):
     netid = db.Column(db.String, primary_key=True)
     course_number = db.Column(db.String, primary_key=True)
     term = db.Column(db.String, primary_key=True)
+    grade = db.Column(db.Float, default = 0.0)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
-    def __init__(self, netid, course_number, term, readts, writets):
+    def __init__(self, netid, course_number, grade, term, readts, writets):
         self.netid = netid
         self.course_number = course_number
         self.term = term
         self.readts = readts
         self.writets = writets
+        self.grade = grade
 
 
 class IClickerQuestion(db.Model):
