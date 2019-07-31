@@ -97,7 +97,7 @@ class Enrollment(db.Model):
     netid = db.Column(db.String, primary_key=True)
     course_number = db.Column(db.String, primary_key=True)
     term = db.Column(db.String, primary_key=True)
-    grade = db.Column(db.Float, default = 0.0)
+    grade = db.Column(db.Float, nullable = False, default = 0.0)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
