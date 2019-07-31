@@ -4,7 +4,7 @@
 import logging
 
 LOGGING = True
-FILELOGGING = False
+FILELOGGING = True
 
 def loggerStart():
     gunicorn_error_handlers = logging.getLogger('gunicorn.error').handlers

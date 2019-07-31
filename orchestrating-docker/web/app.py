@@ -299,7 +299,7 @@ class sessioninformation(Resource):
 
     @api.expect(post_session_model)
     @api.doc(body=post_session_model)
-    #@instructor_required
+    @instructor_required
     def post(self):
         params = api.payload
         term = get_term()
@@ -334,7 +334,7 @@ class sessioninformation(Resource):
         return "Session information has been updated successfully", 200
     @api.expect(delete_session_model)
     @api.doc(body=delete_session_model)
-    #@instructor_required
+    @instructor_required
     def delete(self):
         params = api.payload
         term = get_term()
@@ -733,7 +733,7 @@ class Courses(Resource):
 class CodingEnvironment(Resource):
     @api.expect(post_coding_model)
     @api.doc(body=post_coding_model)
-    #@jwt_requried
+    @jwt_required
     def post(self):
         params = api.payload
         code = params.pop('code')
