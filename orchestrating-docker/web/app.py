@@ -672,15 +672,14 @@ class UpvotesPost(Resource):
             else:
                 break
 
-@co_api.route('/')
+@co_api.route('/<term>')
 class Courses(Resource):
     @jwt_required
-    def get(self):
-        term = get_term()
+    def get(self, term):
         while True:
             try:
                 ts = startTransaction()
-                courseInfo = text('SELECT * FROM courses WHERE term=:term')
+                courseInfo = text('SELECT * FROM courses WHERE term=:term ORDER BY term')
                 response = db.engine.execute(courseInfo, term=term).fetchall()
                 updatets = text('UPDATE courses SET readts = :ts WHERE term=:term')
                 db.engine.execute(updatets, ts=ts, term=term)
