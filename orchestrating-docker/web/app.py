@@ -8,10 +8,12 @@ from config import BaseConfig
 from sqlalchemy import func, select, text, exists, and_
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, verify_jwt_in_request, get_jwt_identity, get_jwt_claims
 from functools import wraps
+from flask_cors import CORS, cross_origin
 import psycopg2
 import hashlib
 
 app = Flask(__name__)
+CORS(app, supports_credentials = True)
 app.config.from_object(BaseConfig)
 db = SQLAlchemy(app)
 
@@ -48,6 +50,7 @@ iclkres_api = Namespace('I clicker reponse', description = 'Insert a reponse ope
 q_api = Namespace('Student Questions', description = 'student question operations')
 lg_api = Namespace('login', description='Authentication')
 cu_api = Namespace('create_user', description = 'create/update user information')
+co_api = Namespace('courses', description = 'get courses')
 
 #get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
 post_question_model = api.model('question', {'question': fields.String})
@@ -90,6 +93,7 @@ post_iclickerquestion_model = api.model('iclicker_question_post', {'sessionid': 
                                                                    'answer': fields.String,
                                                                    'timelimit': fields.Integer
                                                                    })
+get_courses_model = api.model('get courses', {})
 
 api.add_namespace(s_api)
 api.add_namespace(re_api)
@@ -99,6 +103,7 @@ api.add_namespace(re_api)
 api.add_namespace(iclkres_api)
 api.add_namespace(lg_api)
 api.add_namespace(cu_api)
+api.add_namespace(co_api)
 
 
 @jwt.user_claims_loader
@@ -651,6 +656,25 @@ class UpvotesPost(Resource):
                 rollBack()
             else:
                 break
+
+@co_api.route('/')
+class Courses(Resource):
+    @jwt_required
+    def get(self):
+        term = get_term()
+        while True:
+            try:
+                ts = startTransaction()
+                courseInfo = text('SELECT * FROM courses WHERE term=:term')
+                response = db.engine.execute(courseInfo, term=term).fetchall()
+                updatets = text('UPDATE courses SET readts = :ts WHERE term=:term')
+                db.engine.execute(updatets, ts=ts, term=term)
+                endTransaction()
+            except psycopg2.Error:
+                rollBack()
+            else:
+                break
+        return json.dumps([dict(row) for row in response])
 
 if __name__ == '__main__':
     app.run(debug=True)
