@@ -271,6 +271,7 @@ class sessioninformation(Resource):
     @jwt_required
     def get(self):
         global response
+        # response = None
         netid = get_jwt_identity()
         while True:
             try:
@@ -281,6 +282,8 @@ class sessioninformation(Resource):
                     response = db.engine.execute(sessionInfo, sessionid=sessionid).fetchall()
                     updatets = text('UPDATE session SET readts = :ts WHERE sessionid=:sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid)
+                else:
+                    response = []
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -357,8 +360,8 @@ class sessioninformation(Resource):
                 #Grade responses for IClicker questions
                 total_questions_query = text('SELECT Count(*) FROM iclickerquestion WHERE sessionid = :sessionid')
                 total_questions = db.engine.execute(total_questions_query, sessionid=sessionid).scalar()
-                total_students_query = text('SELECT netid, Count(qid) AS questions_answered FROM iclickerresponse WHERE sessionid = :sessionid GROUP BY netid').fetchall()
-                total_students = db.engine.execute(total_students_query, sessionid=sessionid)
+                total_students_query = text('SELECT netid, Count(iqid) AS questions_answered FROM iclickerresponse WHERE sessionid = :sessionid GROUP BY netid')
+                total_students = db.engine.execute(total_students_query, sessionid=sessionid).fetchall()
                 for student in total_students:
                     netid = student[0]
                     answers = student[1]
@@ -396,6 +399,8 @@ class Iclickerquestion(Resource):
                     response = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
                     updatets = text('UPDATE iclickerquestion SET readts = :ts WHERE sessionid = :sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid)
+                else:
+                    response = []
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -514,6 +519,8 @@ class Iclickerresponseget(Resource):
                     response = db.engine.execute(iclickerresponseInfo, sessionid=sessionid, iqid=iqid).fetchall()
                     updatets = text('UPDATE iclickerresponse SET readts = :ts WHERE sessionid = :sessionid AND iqid = :iqid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid, iqid=iqid)
+                else:
+                    response = []
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -657,6 +664,8 @@ class UpvotesPost(Resource):
 
                     update_query = text('UPDATE student_question SET upvotes = :upvotes, writets=:ts  WHERE qid=:qid AND sessionid=:sessionid')
                     db.engine.execute(update_query, upvotes = new_votes, ts=ts, qid = qid, sessionid=sessionid)
+                else:
+                    response = []
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
