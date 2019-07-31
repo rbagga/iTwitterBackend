@@ -665,13 +665,13 @@ class StudentQuestionPost(Resource):
                 break
             return "Student Question has been updated successfully", 200
 
-    @api_expect(delete_question_model)
-    @api_doc(body=delete_question_model)
+    @api.expect(delete_question_model)
+    @api.doc(body=delete_question_model)
     @jwt_required
     #instructor_requrired
     def delete(self):
         params = api.payload
-        qid = api.pop("qid")
+        qid = params.pop("qid")
         netid = get_jwt_identity()
         while True:
             try:
