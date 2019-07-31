@@ -35,12 +35,13 @@ def piazzaMigration(unpackedQuestions, networkid, netid, passwd):
         subject = 'Lecture Question Overflow: '+str(datetime.datetime.now().month)+'/'+str(datetime.datetime.now().day)
         content = mystdout.getvalue()
 
-        #logger.info("Posting to piazza this content:")
-        #logger.info(content)
+        logger.info("Posting to piazza this content:")
+        logger.info(content)
 
         p.user_login(netid+"@illinois.edu", passwd)
         course = p.network(networkid)
-        course.create_post('question', folders, subject, content, False, False, False)
+        #course.create_post('question', folders, subject, content, False, False, False)
+
 
         # test
         #p.user_login()

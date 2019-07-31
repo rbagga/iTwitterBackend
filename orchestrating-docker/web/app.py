@@ -51,11 +51,9 @@ cu_api = Namespace('create_user', description = 'create/update user information'
 
 #get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
 post_question_model = api.model('question', {'question': fields.String})
-get_session_model = api.model('session', {'classId': fields.String(description = 'class ID to get'),
-                                'term': fields.String(description = 'term to get')})
-post_session_model = api.model('professor', {'course_number': fields.String,
-                                'endsession': fields.Boolean}
-                                )
+get_session_model = api.model('session', {})
+post_session_model = api.model('professor', {'course_number': fields.String})
+delete_session_model = api.model('Session', {'course_number': fields.String})
 get_enterquestion_model = api.model('iqid', {'QuestionNumber': fields.Integer(description = 'Question number to get')})
 post_enterquestion_model = api.model('Question', {'Question': fields.String,
                                 'optionA': fields.String,
@@ -145,6 +143,18 @@ def get_term():
         return "sp"
     semester = get_semester(date.month, date.day)
     return str(year)+"-"+semester
+
+def get_sessionid_student(netid, ts):
+    sessionid_query = text('SELECT session.sessionid FROM session JOIN enrollment ON session.course_number = enrollment.course_number AND session.term = enrollment.term WHERE enrollment.netid = :netid')
+    sessionid_list = db.engine.execute(sessionid_query, netid=netid).fetchone()
+    if sessionid_list is not None:
+        sessionid = sessionid_list[0]
+        updatets = text('UPDATE enrollment SET readts = :ts WHERE netid = :netid')
+        db.engine.execute(updatets, ts=ts, netid=netid)
+        updatets2 = text('UPDATE session SET readts = :ts WHERE sessionid = :sessionid')
+        db.engine.execute(updatets2, ts=ts, sessionid=sessionid)
+        return sessionid
+    return None
 
 def get_sessionid_student(netid, ts):
     sessionid_query = text('SELECT session.sessionid FROM session JOIN enrollment ON session.course_number = enrollment.course_number AND session.term = enrollment.term WHERE enrollment.netid = :netid')
@@ -282,51 +292,74 @@ class sessioninformation(Resource):
         params = api.payload
         term = get_term()
         course_number = params.pop("course_number")  # change this to be gotten from table
-        endsession = params.pop("endsession")
         while True:
             try:
                 ts = startTransaction()
                 date_key = str(datetime.datetime.now().month)+"-"+str(datetime.datetime.now().day)
                 hash_key = date_key+term+course_number
                 sessionid = hashlib.sha256(hash_key.encode('utf-8')).hexdigest()
-                if not endsession:
-                    checkSession = text('SELECT * FROM session WHERE sessionid=:sessionid')
-                    sameSession = db.engine.execute(checkSession, sessionid=sessionid).fetchone()
-                    updatets = text('UPDATE session SET readts = :ts WHERE sessionid = :sessionid')
-                    db.engine.execute(updatets, ts=ts, sessionid=sessionid)
 
-                    if sameSession is None:
-                        newSession = text('INSERT INTO session (sessionid, date, term, course_number, writets) VALUES (:sessionid, :date, :term, :course_number, :ts)')
-                        db.engine.execute(newSession, sessionid=sessionid, date=date_key, term=term, course_number=course_number, ts=ts)
-                    #pass this sessionid to every otehr table
-                    # student_question_sessionid = text('INSERT INTO ')
-                else:
-                    # post to piazza, then delete questions
-                    questionInfo = text('SELECT ques FROM student_question WHERE sessionid = :sessionid')
-                    questions = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
-                    updatets = text('UPDATE student_question SET readts = :ts WHERE sessionid = :sessionid')
-                    db.engine.execute(updatets, ts=ts, sessionid=sessionid)
+                checkSession = text('SELECT * FROM session WHERE sessionid=:sessionid')
+                sameSession = db.engine.execute(checkSession, sessionid=sessionid).fetchone()
+                updatets = text('UPDATE session SET readts = :ts WHERE sessionid = :sessionid')
+                db.engine.execute(updatets, ts=ts, sessionid=sessionid)
 
-                    # get networkid, netid and password of a student
-                    courseInfo = text('SELECT piazza_nid, piazza_netid, piazza_passwd FROM courses WHERE course_number=:course_number AND term=:term')
-                    piazzaTuple = db.engine.execute(courseInfo, course_number=course_number, term=term).fetchone()
+                if sameSession is None:
+                    newSession = text('INSERT INTO session (sessionid, date, term, course_number, writets) VALUES (:sessionid, :date, :term, :course_number, :ts)')
+                    db.engine.execute(newSession, sessionid=sessionid, date=date_key, term=term, course_number=course_number, ts=ts)
+                #pass this sessionid to every otehr table
+                # student_question_sessionid = text('INSERT INTO ')
+                endTransaction()
+            except psycopg2.Error:
+                rollBack()
+            else:
+                break
+        return "Session information has been updated successfully", 200
+    @api.expect(delete_session_model)
+    @api.doc(body=delete_session_model)
+    #@instructor_required
+    def delete(self):
+        params = api.payload
+        term = get_term()
+        course_number = params.pop("course_number")  # change this to be gotten from table
+        while True:
+            try:
+                ts = startTransaction()
+                date_key = str(datetime.datetime.now().month)+"-"+str(datetime.datetime.now().day)
+                hash_key = date_key+term+course_number
+                sessionid = hashlib.sha256(hash_key.encode('utf-8')).hexdigest()
+
+                # post to piazza, then delete questions
+                questionInfo = text('SELECT ques FROM student_question WHERE sessionid = :sessionid')
+                questions = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
+                updatets = text('UPDATE student_question SET readts = :ts WHERE sessionid = :sessionid')
+                db.engine.execute(updatets, ts=ts, sessionid=sessionid)
+
+                # get networkid, netid and password of a student
+                courseInfo = text('SELECT piazza_nid, piazza_netid, piazza_passwd FROM courses WHERE course_number=:course_number AND term=:term')
+                piazzaTuple = db.engine.execute(courseInfo, course_number=course_number, term=term).fetchone()
+                if piazzaTuple is not None:
                     piazza_nid, piazza_netid, piazza_passwd = piazzaTuple[0], piazzaTuple[1], piazzaTuple[2]
                     updatets = text('UPDATE courses SET readts = :ts WHERE course_number = :course_number AND term = :term')
                     db.engine.execute(updatets, ts=ts, course_number=course_number, term=term)
 
                     piazzaMigration(questions, piazza_nid, piazza_netid, piazza_passwd)
 
-                    # Purge everything
-                    purgeQuestions = text('DELETE FROM student_question WHERE sessionid = :sessionid')
-                    db.engine.execute(purgeQuestions, sessionid=sessionid)
-                    purgeIClickerQuestions = text('DELETE FROM iclickerquestion WHERE sessionid = :sessionid')
-                    db.engine.execute(purgeIClickerQuestions, sessionid=sessionid)
-                    purgeUpvotes = text('DELETE FROM upvotes WHERE sessionid = :sessionid')
-                    db.engine.execute(purgeUpvotes, sessionid=sessionid)
-                    #Grade responses for IClicker questions
+                # Purge everything
+                purgeQuestions = text('DELETE FROM student_question WHERE sessionid = :sessionid')
+                db.engine.execute(purgeQuestions, sessionid=sessionid)
+                purgeUpvotes = text('DELETE FROM upvotes WHERE sessionid = :sessionid')
+                db.engine.execute(purgeUpvotes, sessionid=sessionid)
 
-                    purgeSession = text('DELETE FROM session WHERE sessionid=:sessionid')
-                    db.engine.execute(purgeSession, sessionid=sessionid)
+                #Grade responses for IClicker questions
+
+                purgeIClickerQuestions = text('DELETE FROM iclickerquestion WHERE sessionid = :sessionid')
+                db.engine.execute(purgeIClickerQuestions, sessionid=sessionid)
+                purgeIClickerResponses = text('DELETE FROM iclickerresponse WHERE sessionid = :sessionid')
+                db.engine.execute(purgeIClickerResponses, sessionid=sessionid)
+
+                purgeSession = text('DELETE FROM session WHERE sessionid=:sessionid')
+                db.engine.execute(purgeSession, sessionid=sessionid)
 
                 endTransaction()
             except psycopg2.Error:
@@ -457,7 +490,7 @@ class StudentEnrollment(Resource):
 class Iclickerresponse(Resource):
     @api.expect(get_iclickerresponse_model)
     @api.doc(body=get_iclickerresponse_model)
-    @jwt_required
+    #@instructor_required
     def get(self):  ###why do we have this?
         global response
         params = api.payload
