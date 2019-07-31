@@ -708,9 +708,7 @@ class CodingEnvironment(Resource):
         dictToSend = {'code': code}
         url = 'http://coding:5000/run_code'
         res = requests.post(url, json=dictToSend)
-        #logger.info(res.text)
         dictFromServer = res.json()
-        #logger.info(dictFromServer)
         return dictFromServer
 
 if __name__ == '__main__':
