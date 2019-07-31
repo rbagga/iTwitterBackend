@@ -41,6 +41,11 @@ services:
     ports:
       - "5432:5432"
 
+  coding:
+    build: ../OnlinePythonCompiler/PythonBuddy
+    ports:
+    - "8002:5000"
+
 volumes:
   db-data:
   web-data:

@@ -312,63 +312,63 @@ def create_concurrency_triggers():  #### may still need to write an insert trigg
         EXECUTE PROCEDURE trigger_update_timestamp();
         """,
         """
-        CREATE TRIGGER update_timestamp
+        CREATE TRIGGER update_timestamp1
         BEFORE UPDATE
         ON courses
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_update_timestamp();
         """,
         """
-        CREATE TRIGGER update_timestamp
+        CREATE TRIGGER update_timestamp2
         BEFORE UPDATE
         ON faculty
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_update_timestamp();
         """,
         """
-        CREATE TRIGGER update_timestamp
+        CREATE TRIGGER update_timestamp3
         BEFORE UPDATE
         ON students
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_update_timestamp();
         """,
         """
-        CREATE TRIGGER update_timestamp
+        CREATE TRIGGER update_timestamp4
         BEFORE UPDATE
         ON session
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_update_timestamp();
         """,
         """
-        CREATE TRIGGER update_timestamp
+        CREATE TRIGGER update_timestamp5
         BEFORE UPDATE
         ON student_question
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_update_timestamp();
         """,
         """
-        CREATE TRIGGER update_timestamp
+        CREATE TRIGGER update_timestamp6
         BEFORE UPDATE
         ON upvotes
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_update_timestamp();
         """,
         """
-        CREATE TRIGGER update_timestamp
+        CREATE TRIGGER update_timestamp7
         BEFORE UPDATE
         ON iclickerresponse
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_update_timestamp();
         """,
         """
-        CREATE TRIGGER update_timestamp
+        CREATE TRIGGER update_timestamp8
         BEFORE UPDATE
         ON enrollment
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_update_timestamp();
         """,
         """
-        CREATE TRIGGER update_timestamp
+        CREATE TRIGGER update_timestamp9
         BEFORE UPDATE
         ON iclickerresponse
         FOR EACH ROW
