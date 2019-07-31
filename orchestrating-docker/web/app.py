@@ -11,6 +11,7 @@ from functools import wraps
 from flask_cors import CORS, cross_origin
 import psycopg2
 import hashlib
+import requests
 
 app = Flask(__name__)
 CORS(app)
@@ -51,6 +52,7 @@ q_api = Namespace('StudentQuestions', description = 'student question operations
 lg_api = Namespace('login', description='Authentication')
 cu_api = Namespace('create_user', description = 'create/update user information')
 co_api = Namespace('courses', description = 'get courses')
+cd_api = Namespace('coding environment', description = 'coding environment')
 
 #get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
 post_question_model = api.model('question', {'question': fields.String})
@@ -90,6 +92,7 @@ post_iclickerquestion_model = api.model('iclicker_question_post', {'sessionid': 
                                                                    'timelimit': fields.Integer
                                                                    })
 get_courses_model = api.model('get courses', {})
+post_coding_model = api.model('code to run', {'code': fields.String})
 
 api.add_namespace(s_api)
 api.add_namespace(re_api)
@@ -100,6 +103,7 @@ api.add_namespace(iclkres_api)
 api.add_namespace(lg_api)
 api.add_namespace(cu_api)
 api.add_namespace(co_api)
+api.add_namespace(cd_api)
 
 
 @jwt.user_claims_loader
@@ -360,7 +364,7 @@ class sessioninformation(Resource):
                 #Grade responses for IClicker questions
                 total_questions_query = text('SELECT Count(*) FROM iclickerquestion WHERE sessionid = :sessionid')
                 total_questions = db.engine.execute(total_questions_query, sessionid=sessionid).scalar()
-                total_students_query = text('SELECT netid, Count(iqid) AS questions_answered FROM iclickerresponse WHERE sessionid = :sessionid GROUP BY netid')
+                total_students_query = text('SELECT netid, Count(iqid) AS questions_answered FROM iclickerresponse, iclickerquestion WHERE sessionid = :sessionid AND iclickerquestion.sessionid = iclickerresponse.sessionid AND iclickerquestion.iqid = iclickerresponse.iqid AND iclickerresponse.responsetime BETWEEN iclickerquestion.starttime AND iclickerquestion.endtime GROUP BY netid')
                 total_students = db.engine.execute(total_students_query, sessionid=sessionid).fetchall()
                 for student in total_students:
                     netid = student[0]
@@ -696,6 +700,23 @@ class Courses(Resource):
             else:
                 break
         return json.dumps([dict(row) for row in response])
+
+@cd_api.route('/')
+class CodingEnvironment(Resource):
+    @api.expect(post_coding_model)
+    @api.doc(body=post_coding_model)
+    #@jwt_requried
+    def post(self):
+        params = api.payload
+        code = params.pop('code')
+        #netid = get_jwt_identity()
+
+
+        dictToSend = {'code': code}
+        url = 'http://coding:5000/run_code'
+        res = requests.post(url, json=dictToSend)
+        dictFromServer = res.json()
+        return dictFromServer
 
 if __name__ == '__main__':
     app.run(debug=True)
