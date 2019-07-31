@@ -89,7 +89,7 @@ post_iclickerquestion_model = api.model('iclicker_question_post', {'sessionid': 
                                                                    'optB': fields.String,
                                                                    'optC': fields.String,
                                                                    'optD': fields.String,
-                                                                   'answer:': fields.String,
+                                                                   'answer': fields.String,
                                                                    'timelimit': fields.Integer
                                                                    })
 
@@ -326,20 +326,25 @@ class sessioninformation(Resource):
 
 @en_api.route('/')
 class Iclickerquestion(Resource):
-    @api.expect(get_iclickerquestion_model)
-    @api.doc(body=get_iclickerquestion_model)
     @jwt_required
     def get(self):
         global response
-        params = api.payload
-        sessionid = params.pop("sessionid")
+        netid = get_jwt_identity()
         while True:
             try:
                 ts = startTransaction()
-                questionInfo = text('SELECT ques FROM iclickerquestion WHERE sessionid = :sessionid')
-                response = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
-                updatets = text('UPDATE iclickerquestion SET readts = :ts WHERE sessionid = :sessionid')
-                db.engine.execute(updatets, ts=ts, sessionid=sessionid)
+                sessionid_query = text('SELECT session.sessionid FROM session JOIN enrollment ON session.course_number = enrollment.course_number AND session.term = enrollment.term WHERE enrollment.netid = :netid')
+                sessionid_list = db.engine.execute(sessionid_query, netid=netid).fetchone()
+                if sessionid_list is not None:
+                    sessionid = sessionid_list[0]
+                    updatets = text('UPDATE enrollment SET readts = :ts WHERE netid = :netid')
+                    db.engine.execute(updatets, ts=ts, netid=netid)
+                    updatets2 = text('UPDATE session SET readts = :ts WHERE sessionid = :sessionid')
+                    db.engine.execute(updatets2, ts=ts, sessionid=sessionid)
+                    questionInfo = text('SELECT ques FROM iclickerquestion WHERE sessionid = :sessionid')
+                    response = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
+                    updatets = text('UPDATE iclickerquestion SET readts = :ts WHERE sessionid = :sessionid')
+                    db.engine.execute(updatets, ts=ts, sessionid=sessionid)
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -374,17 +379,17 @@ class Iclickerquestion(Resource):
                     iqid = 1
                 else:
                     get_latest_qid = text('SELECT MAX(iqid) FROM iclickerquestion WHERE sessionid = :sessionid')
-                    latest_qid = db.engine.execute(latest_qid, sessionid=sessionid).scalar()
+                    latest_qid = db.engine.execute(get_latest_qid, sessionid=sessionid).scalar()
                     #update the timestamp
                     updatets = text('UPDATE iclickerquestion SET readts = :ts WHERE sessionid = :sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid)
                     iqid = latest_qid+1
 
-                startTime = datetime.datetime.now()
+                starttime = datetime.datetime.now()
                 #timelimit is in minutes
-                endTime = startTime + datetime.timedelta(minutes=timelimit)
-                newQuestion = text('INSERT INTO iclickerquestion (iqid, ques, answer, optiona, optionb, optionc, optiond, sessionid, writets, startTime, endTime) VALUES (:iqid, :ques, :answer, :optiona, :optionb, :optionc, :optiond, :sessionid, :ts, :startTime, :endTime)')
-                db.engine.execute(newQuestion, iqid=iqid, ques=ques, answer=answer, optiona=optiona, optionb=optionb, optionc=optionc, optiond=optiond, sessionid=sessionid, ts=ts, startTime=startTime, endTime=endTime)
+                endtime = starttime + datetime.timedelta(minutes=timelimit)
+                newQuestion = text('INSERT INTO iclickerquestion (iqid, ques, answer, optiona, optionb, optionc, optiond, sessionid, writets, starttime, endtime) VALUES (:iqid, :ques, :answer, :optiona, :optionb, :optionc, :optiond, :sessionid, :ts, :starttime, :endtime)')
+                db.engine.execute(newQuestion, iqid=iqid, ques=ques, answer=answer, optiona=optiona, optionb=optionb, optionc=optionc, optiond=optiond, sessionid=sessionid, ts=ts, starttime=starttime, endtime=endtime)
                 endTransaction()
             except psycopg2.Error:
                 rollBack()

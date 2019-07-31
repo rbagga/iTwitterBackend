@@ -120,12 +120,12 @@ class IClickerQuestion(db.Model):
     answer = db.Column(db.String, nullable = False)
     #sessionId number between 1 - 41, total number of lecture in semester
     sessionid = db.Column(db.String, db.ForeignKey('session.sessionid'), primary_key = True)
-    startTime = db.Column(db.DateTime, nullable = False)
-    endTime = db.Column(db.DateTime, nullable=False)
+    starttime = db.Column(db.DateTime, nullable = False)
+    endtime = db.Column(db.DateTime, nullable=False)
     readts = db.Column(db.Integer, nullable=True, default = 0)
     writets = db.Column(db.Integer, nullable=True, default = 0)
 
-    def __init__(self, ques, answer, optiona, sessionid, optionb, optionc, optiond, startTime, endTime, readts, writets):
+    def __init__(self, ques, answer, optiona, sessionid, optionb, optionc, optiond, starttime, endtime, readts, writets):
         self.ques = ques
         self.optiona = optiona
         self.optionb = optionb
@@ -133,8 +133,8 @@ class IClickerQuestion(db.Model):
         self.optiond = optiond
         self.answer = answer
         self.sessionid = sessionid
-        self.startTime = startTime
-        self.endTime = endTime
+        self.starttime = starttime
+        self.endtime = endtime
         self.readts = readts
         self.writets = writets
 
