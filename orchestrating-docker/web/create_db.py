@@ -342,7 +342,7 @@ def create_concurrency_triggers():  #### may still need to write an insert trigg
         """
         CREATE TRIGGER update_timestamp
         BEFORE UPDATE
-        ON question
+        ON student_question
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_update_timestamp();
         """,
