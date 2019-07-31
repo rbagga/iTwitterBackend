@@ -325,18 +325,18 @@ class Iclickerquestion(Resource):
         while True:
             try:
                 ts = startTransaction()
-
                 sessionid_query = text('SELECT session.sessionid FROM session JOIN enrollment ON session.course_number = enrollment.course_number AND session.term = enrollment.term WHERE enrollment.netid = :netid')
                 sessionid_list = db.engine.execute(sessionid_query, netid=netid).fetchone()
-                sessionid = sessionid_list[0]
-                updatets = text('UPDATE enrollment SET readts = :ts WHERE netid = :netid')
-                db.engine.execute(updatets, ts=ts, netid=netid)
-                updatets2 = text('UPDATE session SET readts = :ts WHERE sessionid = :sessionid')
-                db.engine.execute(updatets2, ts=ts, sessionid=sessionid)
-                questionInfo = text('SELECT ques FROM iclickerquestion WHERE sessionid = :sessionid')
-                response = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
-                updatets = text('UPDATE iclickerquestion SET readts = :ts WHERE sessionid = :sessionid')
-                db.engine.execute(updatets, ts=ts, sessionid=sessionid)
+                if sessionid_list is not None:
+                    sessionid = sessionid_list[0]
+                    updatets = text('UPDATE enrollment SET readts = :ts WHERE netid = :netid')
+                    db.engine.execute(updatets, ts=ts, netid=netid)
+                    updatets2 = text('UPDATE session SET readts = :ts WHERE sessionid = :sessionid')
+                    db.engine.execute(updatets2, ts=ts, sessionid=sessionid)
+                    questionInfo = text('SELECT ques FROM iclickerquestion WHERE sessionid = :sessionid')
+                    response = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
+                    updatets = text('UPDATE iclickerquestion SET readts = :ts WHERE sessionid = :sessionid')
+                    db.engine.execute(updatets, ts=ts, sessionid=sessionid)
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
