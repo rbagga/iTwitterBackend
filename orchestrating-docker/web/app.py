@@ -50,7 +50,7 @@ lg_api = Namespace('login', description='Authentication')
 cu_api = Namespace('create_user', description = 'create/update user information')
 
 #get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
-post_question_model = api.model('question', {'question': fields.String, 'sessionid' : fields.String})
+post_question_model = api.model('question', {'question': fields.String})
 get_session_model = api.model('session', {'classId': fields.String(description = 'class ID to get'),
                                 'term': fields.String(description = 'term to get')})
 post_session_model = api.model('professor', {'course_number': fields.String,
@@ -81,8 +81,8 @@ create_user_model = api.model('create_user', {
     'lastname': fields.String(description='lastname', required=True),
     'password': fields.String(description='Password', required=True)
 })
-put_upvotes_model = api.model('upvotes', {'sessionId': fields.String(description='sessionId', required=True)})
-get_iclickerquestion_model = api.model('iclicker_question_get', {'sessionid': fields.String})
+put_upvotes_model = api.model('upvotes',{})
+get_iclickerquestion_model = api.model('iclicker_question_get',{})
 post_iclickerquestion_model = api.model('iclicker_question_post', {'sessionid': fields.String,
                                                                    'question': fields.String,
                                                                    'optA': fields.String,
@@ -146,6 +146,17 @@ def get_term():
     semester = get_semester(date.month, date.day)
     return str(year)+"-"+semester
 
+def get_sessionid_student(netid, ts):
+    sessionid_query = text('SELECT session.sessionid FROM session JOIN enrollment ON session.course_number = enrollment.course_number AND session.term = enrollment.term WHERE enrollment.netid = :netid')
+    sessionid_list = db.engine.execute(sessionid_query, netid=netid).fetchone()
+    if sessionid_list is not None:
+        sessionid = sessionid_list[0]
+        updatets = text('UPDATE enrollment SET readts = :ts WHERE netid = :netid')
+        db.engine.execute(updatets, ts=ts, netid=netid)
+        updatets2 = text('UPDATE session SET readts = :ts WHERE sessionid = :sessionid')
+        db.engine.execute(updatets2, ts=ts, sessionid=sessionid)
+        return sessionid
+    return None
 
 @cu_api.route('/')
 class createuser(Resource):
@@ -333,14 +344,8 @@ class Iclickerquestion(Resource):
         while True:
             try:
                 ts = startTransaction()
-                sessionid_query = text('SELECT session.sessionid FROM session JOIN enrollment ON session.course_number = enrollment.course_number AND session.term = enrollment.term WHERE enrollment.netid = :netid')
-                sessionid_list = db.engine.execute(sessionid_query, netid=netid).fetchone()
-                if sessionid_list is not None:
-                    sessionid = sessionid_list[0]
-                    updatets = text('UPDATE enrollment SET readts = :ts WHERE netid = :netid')
-                    db.engine.execute(updatets, ts=ts, netid=netid)
-                    updatets2 = text('UPDATE session SET readts = :ts WHERE sessionid = :sessionid')
-                    db.engine.execute(updatets2, ts=ts, sessionid=sessionid)
+                sessionid = get_sessionid_student(netid,ts)
+                if sessionid is not None:
                     questionInfo = text('SELECT ques FROM iclickerquestion WHERE sessionid = :sessionid')
                     response = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
                     updatets = text('UPDATE iclickerquestion SET readts = :ts WHERE sessionid = :sessionid')
@@ -515,14 +520,17 @@ class Iclickerresponse(Resource):
 class StudentQuestionPost(Resource):
     @jwt_required
     def get(self):
+        netid = get_jwt_identity()
         global response
         while True:
             try:
                 ts = startTransaction()
-                questionInfo = text('SELECT * from student_question')
-                response = db.engine.execute(questionInfo).fetchall()
-                updatets = text('UPDATE student_question SET readts = :ts')
-                db.engine.execute(updatets, ts=ts)
+                sessionid = get_sessionid_student(netid,ts)
+                if sessionid is not None:
+                    questionInfo = text('SELECT * FROM student_question WHERE sessionid = :sessionid')
+                    response = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
+                    updatets = text('UPDATE student_question SET readts = :ts WHERE sessionid = :sessionid')
+                    db.engine.execute(updatets, ts=ts, sessionid=sessionid)
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -535,32 +543,31 @@ class StudentQuestionPost(Resource):
     def post(self):
         params = api.payload
         ques = params.pop("question")
-        # netid = params.pop("netid")
-        #get session_id from session
-        sessionid = params.pop("sessionid")
+        netid = get_jwt_identity()
 
         while True:
             try:
                 ts = startTransaction()
-                check_table_empty = text('SELECT * FROM student_question WHERE sessionid = :sessionid')
-                table_entries = db.engine.execute(check_table_empty, sessionid=sessionid).fetchone()
-                #update the timestamp
-                updatets = text('UPDATE student_question SET readts = :ts WHERE sessionid = :sessionid')
-                db.engine.execute(updatets, ts=ts, sessionid=sessionid)
-                if table_entries is None:
-                    #table is empty
-                    qid = 1
-                else:
-                    get_latest_qid = text('SELECT MAX(qid) FROM student_question WHERE sessionid = :sessionid')
-                    latest_qid = db.engine.execute(get_latest_qid, sessionid=sessionid).scalar()
-                    #update the timestamp
+                sessionid = get_sessionid_student(netid,ts)
+                if sessionid is not None:
+                    check_table_empty = text('SELECT * FROM student_question WHERE sessionid = :sessionid')
+                    table_entries = db.engine.execute(check_table_empty, sessionid=sessionid).fetchone()
                     updatets = text('UPDATE student_question SET readts = :ts WHERE sessionid = :sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid)
-                    qid = latest_qid+1
+                    if table_entries is None:
+                        #table is empty
+                        qid = 1
+                    else:
+                        get_latest_qid = text('SELECT MAX(qid) FROM student_question WHERE sessionid = :sessionid')
+                        latest_qid = db.engine.execute(get_latest_qid, sessionid=sessionid).scalar()
+                        #update the timestamp
+                        updatets = text('UPDATE student_question SET readts = :ts WHERE sessionid = :sessionid')
+                        db.engine.execute(updatets, ts=ts, sessionid=sessionid)
+                        qid = latest_qid+1
 
-                date_posted = datetime.datetime.now()
-                newQuestion = text('INSERT INTO student_question (qid, ques, sessionid, upvotes, date_posted, writets) VALUES (:qid, :ques, :sessionid, :upvotes, :date_posted, :ts)')
-                db.engine.execute(newQuestion, qid=qid, ques=ques, sessionid=sessionid, upvotes=0, date_posted=date_posted, ts=ts)
+                    date_posted = datetime.datetime.now()
+                    newQuestion = text('INSERT INTO student_question (qid, ques, sessionid, upvotes, date_posted, writets) VALUES (:qid, :ques, :sessionid, :upvotes, :date_posted, :ts)')
+                    db.engine.execute(newQuestion, qid=qid, ques=ques, sessionid=sessionid, upvotes=0, date_posted=date_posted, ts=ts)
                 endTransaction()
 
             except psycopg2.Error:
@@ -578,33 +585,32 @@ class UpvotesPost(Resource):
     def put(self, qid):
         netid = get_jwt_identity()
         qid = qid
-        params = api.payload
-        sessionid = params.pop('sessionId')
         while True:
             try:
                 ts = startTransaction()
+                sessionid = get_sessionid_student(netid,ts)
+                if sessionid is not None:
+                    votesInfo = text('SELECT upvotes FROM student_question WHERE qid = :qid AND sessionid = :sessionid')
+                    response = db.engine.execute(votesInfo, qid=qid, sessionid=sessionid).scalar()
+                    updatets = text('UPDATE student_question SET readts = :ts WHERE qid = :qid AND sessionid = :sessionid')
+                    db.engine.execute(updatets, ts=ts, qid=qid, sessionid=sessionid)
+                    new_votes = 0
+                    exists_query = text('SELECT netid FROM upvotes WHERE EXISTS (SELECT netid FROM upvotes WHERE netid = :netid AND qid = :qid AND sessionid = :sessionid)')
+                    existing = db.engine.execute(exists_query, netid = netid, qid = qid, sessionid=sessionid).fetchall()
+                    updatets = text('UPDATE upvotes SET readts = :ts WHERE EXISTS (SELECT netid FROM upvotes WHERE netid = :netid AND qid = :qid AND sessionid = :sessionid)')
+                    db.engine.execute(updatets, ts=ts, netid=netid, qid=qid, sessionid=sessionid)
+                    already_upvoted = (len(existing) > 0)
+                    if (not already_upvoted):
+                        new_votes = response + 1
+                        newUpvote = text('INSERT INTO upvotes (netid, qid, sessionid, writets) VALUES (:netid, :qid, :sessionid, :ts)')
+                        db.engine.execute(newUpvote, netid=netid, qid=qid, sessionid=sessionid, ts=ts)
+                    else:
+                        new_votes = response - 1
+                        deleteUpvote = text('DELETE FROM upvotes WHERE netid = :netid AND qid = :qid AND sessionid = :sessionid')
+                        db.engine.execute(deleteUpvote, netid = netid, qid=qid, sessionid=sessionid)
 
-                votesInfo = text('SELECT upvotes FROM student_question WHERE qid = :qid AND sessionid = :sessionid')
-                response = db.engine.execute(votesInfo, qid=qid, sessionid=sessionid).scalar()
-                updatets = text('UPDATE student_question SET readts = :ts WHERE qid = :qid AND sessionid = :sessionid')
-                db.engine.execute(updatets, ts=ts, qid=qid, sessionid=sessionid)
-                new_votes = 0
-                exists_query = text('SELECT netid FROM upvotes WHERE EXISTS (SELECT netid FROM upvotes WHERE netid = :netid AND qid = :qid AND sessionid = :sessionid)')
-                existing = db.engine.execute(exists_query, netid = netid, qid = qid, sessionid=sessionid).fetchall()
-                updatets = text('UPDATE upvotes SET readts = :ts WHERE EXISTS (SELECT netid FROM upvotes WHERE netid = :netid AND qid = :qid AND sessionid = :sessionid)')
-                db.engine.execute(updatets, ts=ts, netid=netid, qid=qid, sessionid=sessionid)
-                already_upvoted = (len(existing) > 0)
-                if (not already_upvoted):
-                    new_votes = response + 1
-                    newUpvote = text('INSERT INTO upvotes (netid, qid, sessionid, writets) VALUES (:netid, :qid, :sessionid, :ts)')
-                    db.engine.execute(newUpvote, netid=netid, qid=qid, sessionid=sessionid, ts=ts)
-                else:
-                    new_votes = response - 1
-                    deleteUpvote = text('DELETE FROM upvotes WHERE netid = :netid AND qid = :qid AND sessionid = :sessionid')
-                    db.engine.execute(deleteUpvote, netid = netid, qid=qid, sessionid=sessionid)
-
-                update_query = text('UPDATE student_question SET upvotes = :upvotes, writets=:ts  WHERE qid=:qid AND sessionid=:sessionid')
-                db.engine.execute(update_query, upvotes = new_votes, ts=ts, qid = qid, sessionid=sessionid)
+                    update_query = text('UPDATE student_question SET upvotes = :upvotes, writets=:ts  WHERE qid=:qid AND sessionid=:sessionid')
+                    db.engine.execute(update_query, upvotes = new_votes, ts=ts, qid = qid, sessionid=sessionid)
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
