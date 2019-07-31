@@ -56,6 +56,7 @@ cd_api = Namespace('coding environment', description = 'coding environment')
 
 #get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
 post_question_model = api.model('question', {'question': fields.String})
+delete_question_model = api.model('delete_question', {'qid': fields.String})
 get_session_model = api.model('session', {})
 post_session_model = api.model('professor', {'course_number': fields.String})
 delete_session_model = api.model('Session', {'course_number': fields.String})
@@ -572,7 +573,6 @@ class Iclickerresponseput(Resource):
                 ts = startTransaction()
                 sessionid = get_sessionid_student(netid, ts)
                 if sessionid is not None:
-                    print("SESSION NOT NONE")
                     check_table_empty = text('SELECT * FROM iclickerresponse WHERE sessionid = :sessionid')
                     table_entries = db.engine.execute(check_table_empty, sessionid=sessionid).fetchone()
                     #update the timestamp
@@ -665,6 +665,29 @@ class StudentQuestionPost(Resource):
                 break
             return "Student Question has been updated successfully", 200
 
+    @api_expect(delete_question_model)
+    @api_doc(body=delete_question_model)
+    @jwt_required
+    #instructor_requrired
+    def delete(self):
+        params = api.payload
+        qid = api.pop("qid")
+        netid = get_jwt_identity()
+        while True:
+            try:
+                ts = startTransaction()
+                sessionid = get_sessionid_student(netid, ts)
+                if sessionid is not None:
+                    question_info_query = text('DELETE FROM student_question WHERE qid=:qid AND sessionid=:sessionid')
+                    db.engine.execute(question_info_query, qid=qid, sessionid=sessionid)
+                endTransaction()
+
+            except psycopg2.Error:
+                rollBack()
+
+            else:
+                break
+            return "Deleted Question Successfully"
 
 @q_api.route('/<qid>')
 class UpvotesPost(Resource):
