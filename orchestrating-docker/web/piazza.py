@@ -31,7 +31,7 @@ def piazzaMigration(unpackedQuestions, networkid, netid, passwd):
         for i, item in enumerate(questions,1):
             print(i, '. ' + item, sep='',end='\n')
 
-        folders = ('project',) # 'other')
+        folders = ('project','other') # 'other')
         subject = 'Lecture Question Overflow: '+str(datetime.datetime.now().month)+'/'+str(datetime.datetime.now().day)
         content = mystdout.getvalue()
 
@@ -40,7 +40,7 @@ def piazzaMigration(unpackedQuestions, networkid, netid, passwd):
 
         p.user_login(netid+"@illinois.edu", passwd)
         course = p.network(networkid)
-        #course.create_post('question', folders, subject, content, False, False, False)
+        course.create_post('question', folders, subject, content, False, False, False)
 
 
         # test

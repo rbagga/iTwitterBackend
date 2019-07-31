@@ -20,8 +20,8 @@ def create_tables():
         piazza_nid VARCHAR(255) DEFAULT NULL,
         piazza_netid VARCHAR(255) DEFAULT NULL,
         piazza_passwd VARCHAR(255) DEFAULT NULL,
-        readts INTEGER NOT NULL DEFAULT 0,
-        writets INTEGER NOT NULL DEFAULT 0,
+        readts INTEGER DEFAULT 0,
+        writets INTEGER DEFAULT 0,
         PRIMARY KEY(course_number, term)
         )
         """,
@@ -35,8 +35,8 @@ def create_tables():
         office_number INTEGER,
         term VARCHAR(255),
         course_number VARCHAR(255),
-        readts INTEGER NOT NULL DEFAULT 0,
-        writets INTEGER NOT NULL DEFAULT 0,
+        readts INTEGER DEFAULT 0,
+        writets INTEGER DEFAULT 0,
         PRIMARY KEY(netid, term, course_number),
         FOREIGN KEY (course_number, term)
         REFERENCES courses (course_number, term)
@@ -55,8 +55,8 @@ def create_tables():
         email VARCHAR(255),
         dept VARCHAR(255) DEFAULT 'ECE',
         year VARCHAR(255) DEFAULT 'Grad',
-        readts INTEGER NOT NULL DEFAULT 0,
-        writets INTEGER NOT NULL DEFAULT 0
+        readts INTEGER DEFAULT 0,
+        writets INTEGER DEFAULT 0
         -- FOREIGN KEY(netid)
         -- REFERENCES login_details(netid)
         -- ON UPDATE CASCADE
@@ -248,6 +248,32 @@ def insert_abdu(login_list):
         if conn is not None:
             conn.close()
 
+def insert_timestamp_test(ts_list):
+     """ insert multiple vendors into the vendors table  """
+     sql = "INSERT INTO timestamptest VALUES(%s, %s, NULL, NULL)"
+
+     conn = None
+     try:
+         params = BaseConfig()
+         host_ = params.DB_SERVICE
+         port_ = params.DB_PORT
+         database_ = params.DB_NAME
+         user_ = params.DB_USER
+         password_ = params.DB_PASS
+         conn = psycopg2.connect(host=host_, database=database_, user=user_, password=password_, port=port_)
+
+         cur = conn.cursor()
+         cur.executemany(sql, ts_list)
+         conn.commit()
+         cur.close()
+
+     except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+     finally:
+        if conn is not None:
+            conn.close()
+
 # def insert_abdu_login(login_list):
 #      """ insert multiple vendors into the vendors table  """
 #      sql = "INSERT INTO login_details(netid, firstname, lastname, email) VALUES(%s, %s, %s, %s)"
@@ -281,24 +307,24 @@ def create_concurrency_triggers():  #### may still need to write an insert trigg
         CREATE OR REPLACE FUNCTION trigger_update_timestamp()
         RETURNS  trigger AS $$
         BEGIN
-            -- RAISE NOTICE 'Checking ability to read/write';
-            IF NEW.readts IS NULL THEN
-            RAISE NOTICE 'Checking for ability to write';
-            IF OLD.writets>NEW.writets OR OLD.readts>NEW.writets THEN
-            RAISE EXCEPTION 'UPDATE concurrency: row has been read or written to by a more recent transaction';
-            ELSE
-            NEW.readts = OLD.readts;
-            END IF;
-            ELSEIF NEW.writets IS NULL THEN
-            RAISE NOTICE 'Checking for ability to read';
-            IF OLD.writets>NEW.readts THEN
-            RAISE EXCEPTION 'READ concurrency: row has been written to by a more recent transaction with timestamp %', OLD.writeTS;
-            ELSE
-            IF OLD.readts>NEW.readts THEN
-            NEW.readts = OLD.readts;
-            END IF;
-            NEW.writets = OLD.writets;
-            END IF;
+            RAISE NOTICE 'Checking ability to read/write';
+            IF NEW.writets IS NOT NULL THEN
+                RAISE NOTICE 'Checking for ability to write';
+                IF (OLD.writets IS NOT NULL AND OLD.writets>NEW.writets) OR (OLD.readts IS NOT NULL AND OLD.readts>NEW.writets) THEN
+                    RAISE EXCEPTION 'UPDATE concurrency: row has been read or written to by a more recent transaction';
+                ELSE
+                    NEW.readts = OLD.readts;
+                END IF;
+            ELSEIF NEW.readts IS NOT NULL THEN
+                RAISE NOTICE 'Checking for ability to read';
+                IF OLD.writets IS NOT NULL AND OLD.writets>NEW.readts THEN
+                    RAISE EXCEPTION 'READ concurrency: row has been written to by a more recent transaction';
+                ELSE
+                    IF OLD.readts IS NOT NULL AND OLD.readts>NEW.readts THEN
+                        NEW.readts = OLD.readts;
+                    END IF;
+                    NEW.writets = OLD.writets;
+                END IF;
             END IF;
             RETURN NEW;
         END;
@@ -434,6 +460,9 @@ login_list_6 = [('CS-411', '2019-su', 'Database System', 'Alawini, Abdussalam', 
 insert_abdu_course(login_list_6)
 login_list_5 = [('alawini', 'Abdussalam', 'Alawini', 'alawini@illinois.edu', 'CS', '2019-su', 'CS-411')]
 insert_abdu(login_list_5)
+
+ts_list = [(1, 'hello'), (12, 'world'), (123, 'howdy'), (1234, 'there'), (12345, 'yup')]
+insert_timestamp_test(ts_list)
 
 
 create_concurrency_triggers()

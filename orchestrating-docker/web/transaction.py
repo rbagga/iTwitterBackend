@@ -48,20 +48,20 @@ def getTimestamp():
 
 def startTransaction():
     ts = getTimestamp()
-    begin = text('BEGIN')
-    db.engine.execute(begin)
-    setTS = text('SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED')
-    db.engine.execute(setTS)
+    #begin = text('BEGIN')
+    #db.engine.execute(begin)
+    #setTS = text('SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED')
+    #db.engine.execute(setTS)
     logger.info("Transaction %d start", ts.nextavailable)
     return ts.nextavailable
 
 def endTransaction():
     db.session.commit()
-    end = text('COMMIT')
-    db.engine.execute(end)
+    #end = text('COMMIT')
+    #db.engine.execute(end)
     logger.info("Transaction commit")
 
 def rollBack():
-    rollback = text('ROLLBACK')
-    db.engine.execute(rollback)
+    #rollback = text('ROLLBACK')
+    #db.engine.execute(rollback)
     logger.info("Rolling back...")
