@@ -454,11 +454,11 @@ db.create_all()
 insert_students(login_list)
 insert_faculty(login_list_3)
 insert_courses(login_list_4)
-login_list_7 = [('alawini', 'Abdussalam', 'Alawini', 'alawini@illinois.edu')]
+login_list_7 = [('jnativ2', 'Abdussalam', 'Alawini', 'alawini@illinois.edu')]  ## i have access now
 #insert_abdu_login(login_list_7)
 login_list_6 = [('CS-411', '2019-su', 'Database System', 'Alawini, Abdussalam', 'alawini', 'jvl5vt2p49j72t')]
 insert_abdu_course(login_list_6)
-login_list_5 = [('alawini', 'Abdussalam', 'Alawini', 'alawini@illinois.edu', 'CS', '2019-su', 'CS-411')]
+login_list_5 = [('jnativ2', 'Abdussalam', 'Alawini', 'alawini@illinois.edu', 'CS', '2019-su', 'CS-411')]
 insert_abdu(login_list_5)
 
 ts_list = [(1, 'hello'), (12, 'world'), (123, 'howdy'), (1234, 'there'), (12345, 'yup')]
