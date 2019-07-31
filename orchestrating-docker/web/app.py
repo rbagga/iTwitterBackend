@@ -364,7 +364,7 @@ class sessioninformation(Resource):
                 #Grade responses for IClicker questions
                 total_questions_query = text('SELECT Count(*) FROM iclickerquestion WHERE sessionid = :sessionid')
                 total_questions = db.engine.execute(total_questions_query, sessionid=sessionid).scalar()
-                total_students_query = text('SELECT netid, Count(iqid) AS questions_answered FROM iclickerresponse WHERE sessionid = :sessionid GROUP BY netid')
+                total_students_query = text('SELECT netid, Count(iqid) AS questions_answered FROM iclickerresponse, iclickerquestion WHERE sessionid = :sessionid AND iclickerquestion.sessionid = iclickerresponse.sessionid AND iclickerquestion.iqid = iclickerresponse.iqid AND iclickerresponse.responsetime BETWEEN iclickerquestion.starttime AND iclickerquestion.endtime GROUP BY netid')
                 total_students = db.engine.execute(total_students_query, sessionid=sessionid).fetchall()
                 for student in total_students:
                     netid = student[0]
