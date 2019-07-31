@@ -13,7 +13,7 @@ import psycopg2
 import hashlib
 
 app = Flask(__name__)
-CORS(app, supports_credentials = True)
+CORS(app)
 app.config.from_object(BaseConfig)
 db = SQLAlchemy(app)
 
