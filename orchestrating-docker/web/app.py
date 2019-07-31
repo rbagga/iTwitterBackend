@@ -91,7 +91,6 @@ post_iclickerquestion_model = api.model('iclicker_question_post', {'sessionid': 
                                                                    'timelimit': fields.Integer
                                                                    })
 
-
 api.add_namespace(s_api)
 api.add_namespace(re_api)
 api.add_namespace(en_api)
