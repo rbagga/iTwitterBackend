@@ -43,11 +43,11 @@ jwt._set_error_handler_callbacks(api)
 #app.config['JWT_ACCESS_TOKEN_EXPIRES']=86400
 
 
-s_api = Namespace('Session Information', description = 'question session information operations')
-re_api = Namespace('Enrollment Information', description = 'Registration information operations')
-en_api = Namespace('I-Clicker Questions', description = 'Insert a question operation')
-iclkres_api = Namespace('I clicker reponse', description = 'Insert a reponse operation')
-q_api = Namespace('Student Questions', description = 'student question operations')
+s_api = Namespace('SessionInformation', description = 'question session information operations')
+re_api = Namespace('EnrollmentInformation', description = 'Registration information operations')
+en_api = Namespace('I-ClickerQuestions', description = 'Insert a question operation')
+iclkres_api = Namespace('IclickerReponse', description = 'Insert a reponse operation')
+q_api = Namespace('StudentQuestions', description = 'student question operations')
 lg_api = Namespace('login', description='Authentication')
 cu_api = Namespace('create_user', description = 'create/update user information')
 co_api = Namespace('courses', description = 'get courses')
@@ -283,7 +283,7 @@ class sessioninformation(Resource):
                     updatets = text('UPDATE session SET readts = :ts WHERE sessionid=:sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid)
                 else:
-                    response = []
+                    response = "[]"
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -387,6 +387,7 @@ class sessioninformation(Resource):
 @en_api.route('/')
 class Iclickerquestion(Resource):
     @jwt_required
+    @cross_origin()
     def get(self):
         global response
         netid = get_jwt_identity()
@@ -395,22 +396,24 @@ class Iclickerquestion(Resource):
                 ts = startTransaction()
                 sessionid = get_sessionid_student(netid,ts)
                 if sessionid is not None:
+                    print("session id not none")
                     questionInfo = text('SELECT ques FROM iclickerquestion WHERE sessionid = :sessionid')
                     response = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
                     updatets = text('UPDATE iclickerquestion SET readts = :ts WHERE sessionid = :sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid)
                 else:
-                    response = []
+                    print("session id is none")
+                    response = "[]"
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
             else:
                 break
-        return jsonify({'response' : [dict(row) for row in response]})
+        #return jsonify({'response' : [dict(row) for row in response]})
+        return json.dumps([dict(row) for row in response])
 
     @api.expect(post_iclickerquestion_model)
     @api.doc(body=post_iclickerquestion_model)
-    #@instructor_required
     def post(self):
         params = api.payload
         ques = params.pop("question")
@@ -520,7 +523,7 @@ class Iclickerresponseget(Resource):
                     updatets = text('UPDATE iclickerresponse SET readts = :ts WHERE sessionid = :sessionid AND iqid = :iqid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid, iqid=iqid)
                 else:
-                    response = []
+                    response = "[]"
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -542,6 +545,7 @@ class Iclickerresponseput(Resource):
                 ts = startTransaction()
                 sessionid = get_sessionid_student(netid, ts)
                 if sessionid is not None:
+                    print("SESSION NOT NONE")
                     check_table_empty = text('SELECT * FROM iclickerresponse WHERE sessionid = :sessionid')
                     table_entries = db.engine.execute(check_table_empty, sessionid=sessionid).fetchone()
                     #update the timestamp
@@ -584,12 +588,15 @@ class StudentQuestionPost(Resource):
                     response = db.engine.execute(questionInfo, sessionid=sessionid).fetchall()
                     updatets = text('UPDATE student_question SET readts = :ts WHERE sessionid = :sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid)
+                else:
+                    response = "[]"
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
             else:
                 break
         return json.dumps([dict(row) for row in response])
+
     @api.expect(post_question_model)
     @api.doc(body=post_question_model)
     @jwt_required
@@ -665,7 +672,7 @@ class UpvotesPost(Resource):
                     update_query = text('UPDATE student_question SET upvotes = :upvotes, writets=:ts  WHERE qid=:qid AND sessionid=:sessionid')
                     db.engine.execute(update_query, upvotes = new_votes, ts=ts, qid = qid, sessionid=sessionid)
                 else:
-                    response = []
+                    response = "[]"
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
