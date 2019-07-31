@@ -114,7 +114,7 @@ class IClickerQuestion(db.Model):
     iqid = db.Column(db.Integer, primary_key = True)
     ques = db.Column(db.String, nullable = False)
     optiona = db.Column(db.String, nullable = False)
-    optionb = db.Column(db.String, nullable = True)
+    optionb = db.Column(db.String, nullable = False)
     optionc = db.Column(db.String, nullable = True)
     optiond = db.Column(db.String, nullable = True)
     answer = db.Column(db.String, nullable = False)

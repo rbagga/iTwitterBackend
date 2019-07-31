@@ -308,7 +308,15 @@ class sessioninformation(Resource):
                     # Purge everything
                     purgeQuestions = text('DELETE FROM student_question WHERE sessionid = :sessionid')
                     db.engine.execute(purgeQuestions, sessionid=sessionid)
-                    # then delete session information?
+                    purgeIClickerQuestions = text('DELETE FROM iclickerquestion WHERE sessionid = :sessionid')
+                    db.engine.execute(purgeIClickerQuestions, sessionid=sessionid)
+                    purgeUpvotes = text('DELETE FROM upvotes WHERE sessionid = :sessionid')
+                    db.engine.execute(purgeUpvotes, sessionid=sessionid)
+                    #Grade responses for IClicker questions
+
+                    purgeSession = text('DELETE FROM session WHERE sessionid=:sessionid')
+                    db.engine.execute(purgeSession, sessionid=sessionid)
+
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
