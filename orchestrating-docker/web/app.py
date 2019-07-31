@@ -265,7 +265,7 @@ class login(Resource):
         token = create_access_token(identity=netid)
         return {'token': token}, 200
 
-@s_api.route('/<netid>')
+@s_api.route('/')
 class sessioninformation(Resource):
     @jwt_required
     def get(self):
@@ -354,6 +354,16 @@ class sessioninformation(Resource):
                 db.engine.execute(purgeUpvotes, sessionid=sessionid)
 
                 #Grade responses for IClicker questions
+                total_questions_query = text('SELECT Count(*) FROM iclickerquestion WHERE sessionid = :sessionid')
+                total_questions = db.engine.execute(total_questions_query, sessionid=sessionid).scalar()
+                total_students_query = text('SELECT netid, Count(qid) AS questions_answered FROM iclickerresponse WHERE sessionid = :sessionid GROUP BY netid').fetchall()
+                total_students = db.engine.execute(total_students_query, sessionid=sessionid)
+                for student in total_students:
+                    netid = student[0]
+                    answers = student[1]
+                    grade = answers/total_questions
+                    enrollment_grade_query = text('UPDATE enrollment SET grade=:grade, writets=:ts WHERE course_number=:course_number AND term=:term AND netid=:netid').fetchone()
+                    db.engine.execute(enrollment_grade_query, grade=grade, course_number=course_number, term=term, netid=netid, ts=ts)
 
                 purgeIClickerQuestions = text('DELETE FROM iclickerquestion WHERE sessionid = :sessionid')
                 db.engine.execute(purgeIClickerQuestions, sessionid=sessionid)
@@ -488,24 +498,22 @@ class StudentEnrollment(Resource):
                 break
         return "Enrollment information has been updated successfully", 200
 
-@iclkres_api.route('/')
+@iclkres_api.route('/<iqid>')
 class Iclickerresponse(Resource):
-    @api.expect(get_iclickerresponse_model)
-    @api.doc(body=get_iclickerresponse_model)
     #@instructor_required
     def get(self):  ###why do we have this?
         global response
-        params = api.payload
-        iqid = params.pop("iqid")
-        sessionid = params.pop("sessionid")
-        # netid = params.pop("netid")
+
+        netid = get_jwt_identity()
         while True:
             try:
                 ts = startTransaction()
-                iclickerresponseInfo = text('SELECT * from iclickerresponse WHERE sessionid = :sessionid AND iqid = :iqid')
-                response = db.engine.execute(iclickerresponseInfo, sessionid=sessionid, iqid=iqid).fetchall()
-                updatets = text('UPDATE iclickerresponse SET readts = :ts WHERE sessionid = :sessionid AND iqid = :iqid')
-                db.engine.execute(updatets, ts=ts, sessionid=sessionid, iqid=iqid)
+                sessionid = get_sessionid_student(netid, ts)
+                if sessionid is not None:
+                    iclickerresponseInfo = text('SELECT * from iclickerresponse WHERE sessionid = :sessionid AND iqid = :iqid')
+                    response = db.engine.execute(iclickerresponseInfo, sessionid=sessionid, iqid=iqid).fetchall()
+                    updatets = text('UPDATE iclickerresponse SET readts = :ts WHERE sessionid = :sessionid AND iqid = :iqid')
+                    db.engine.execute(updatets, ts=ts, sessionid=sessionid, iqid=iqid)
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
