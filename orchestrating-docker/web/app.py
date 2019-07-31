@@ -8,10 +8,12 @@ from config import BaseConfig
 from sqlalchemy import func, select, text, exists, and_
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, verify_jwt_in_request, get_jwt_identity, get_jwt_claims
 from functools import wraps
+from flask_cors import CORS, cross_origin
 import psycopg2
 import hashlib
 
 app = Flask(__name__)
+CORS(app, supports_credentials = True)
 app.config.from_object(BaseConfig)
 db = SQLAlchemy(app)
 
@@ -48,6 +50,7 @@ iclkres_api = Namespace('I clicker reponse', description = 'Insert a reponse ope
 q_api = Namespace('Student Questions', description = 'student question operations')
 lg_api = Namespace('login', description='Authentication')
 cu_api = Namespace('create_user', description = 'create/update user information')
+co_api = Namespace('courses', description = 'get courses')
 
 #get_question_model = api.model('qid', {'qid': fields.String(description = 'Question ID to get')})
 post_question_model = api.model('question', {'question': fields.String})
@@ -64,11 +67,7 @@ post_enterquestion_model = api.model('Question', {'Question': fields.String,
 get_enrollment_model = api.model('enrollment', {'course_number': fields.String})
 post_enrollment_model = api.model('Enrollment', {'course_number' : fields.String})
 get_iclickerresponse_model = api.model('get_iclicker_response', {'iqid': fields.Integer(description = 'Question number to get'), 'sessionid':fields.String})
-post_iclickerresponse_model = api.model('iClicker_post_responses', {'netid': fields.String,
-                                'sessionid': fields.String,
-                                'response': fields.String
-                                }
-                                )
+post_iclickerresponse_model = api.model('iClicker_post_responses', {'response': fields.String})
 login_model = api.model('login', {
     'netid': fields.String(description='netid', required=True),
     'password': fields.String(description='Password', required=True)
@@ -90,6 +89,7 @@ post_iclickerquestion_model = api.model('iclicker_question_post', {'sessionid': 
                                                                    'answer': fields.String,
                                                                    'timelimit': fields.Integer
                                                                    })
+get_courses_model = api.model('get courses', {})
 
 api.add_namespace(s_api)
 api.add_namespace(re_api)
@@ -99,6 +99,7 @@ api.add_namespace(re_api)
 api.add_namespace(iclkres_api)
 api.add_namespace(lg_api)
 api.add_namespace(cu_api)
+api.add_namespace(co_api)
 
 
 @jwt.user_claims_loader
@@ -499,16 +500,15 @@ class StudentEnrollment(Resource):
         return "Enrollment information has been updated successfully", 200
 
 @iclkres_api.route('/<iqid>')
-class Iclickerresponse(Resource):
-    #@instructor_required
-    def get(self):  ###why do we have this?
+class Iclickerresponseget(Resource):
+    @jwt_required
+    def get(self, iqid):  ###why do we have this?
         global response
-
         netid = get_jwt_identity()
         while True:
             try:
                 ts = startTransaction()
-                sessionid = get_sessionid_student(netid, ts)
+                sessionid = get_sessionid_student(netid,ts)
                 if sessionid is not None:
                     iclickerresponseInfo = text('SELECT * from iclickerresponse WHERE sessionid = :sessionid AND iqid = :iqid')
                     response = db.engine.execute(iclickerresponseInfo, sessionid=sessionid, iqid=iqid).fetchall()
@@ -521,36 +521,39 @@ class Iclickerresponse(Resource):
                 break
         return json.dumps([dict(row) for row in response])
 
+@iclkres_api.route('/')
+class Iclickerresponseput(Resource):
     @api.expect(post_iclickerresponse_model)
     @api.doc(body=post_iclickerresponse_model)
     @jwt_required
     def post(self):
         params = api.payload
         netid = get_jwt_identity()
-        sessionid = params.pop("sessionid")
         response = params.pop("response")
         while True:
             try:
                 ts = startTransaction()
-                check_table_empty = text('SELECT * FROM iclickerresponse WHERE sessionid = :sessionid')
-                table_entries = db.engine.execute(check_table_empty, sessionid=sessionid).fetchone()
-                #update the timestamp
-                updatets = text('UPDATE iclickerresponse SET readts = :ts WHERE sessionid = :sessionid')
-                db.engine.execute(updatets, ts=ts, sessionid=sessionid)
-                if table_entries is None:
-                    #table is empty
-                    iqid = 1
-                else:
-                    get_latest_qid = text('SELECT MAX(iqid) FROM iclickerresponse WHERE sessionid = :sessionid')
-                    latest_qid = db.engine.execute(latest_qid, sessionid=sessionid).scalar()
+                sessionid = get_sessionid_student(netid, ts)
+                if sessionid is not None:
+                    check_table_empty = text('SELECT * FROM iclickerresponse WHERE sessionid = :sessionid')
+                    table_entries = db.engine.execute(check_table_empty, sessionid=sessionid).fetchone()
                     #update the timestamp
                     updatets = text('UPDATE iclickerresponse SET readts = :ts WHERE sessionid = :sessionid')
                     db.engine.execute(updatets, ts=ts, sessionid=sessionid)
-                    iqid = latest_qid+1
+                    if table_entries is None:
+                        #table is empty
+                        iqid = 1
+                    else:
+                        get_latest_qid = text('SELECT MAX(iqid) FROM iclickerresponse WHERE sessionid = :sessionid')
+                        latest_qid = db.engine.execute(latest_qid, sessionid=sessionid).scalar()
+                        #update the timestamp
+                        updatets = text('UPDATE iclickerresponse SET readts = :ts WHERE sessionid = :sessionid')
+                        db.engine.execute(updatets, ts=ts, sessionid=sessionid)
+                        iqid = latest_qid+1
 
-                responsetime = datetime.datetime.now()
-                newQuestion = text('INSERT INTO iclickerresponse (netid, sessionid, response, iqid, responsetime, writets) VALUES (:netid, :sessionid, :response, :iqid, :responsetime, :ts)')
-                db.engine.execute(newQuestion, netid=netid, sessionid=sessionid, response=response, iqid=iqid, responsetime=responsetime, ts=ts)
+                    responsetime = datetime.datetime.now()
+                    newQuestion = text('INSERT INTO iclickerresponse (netid, sessionid, response, iqid, responsetime, writets) VALUES (:netid, :sessionid, :response, :iqid, :responsetime, :ts)')
+                    db.engine.execute(newQuestion, netid=netid, sessionid=sessionid, response=response, iqid=iqid, responsetime=responsetime, ts=ts)
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
@@ -659,6 +662,25 @@ class UpvotesPost(Resource):
                 rollBack()
             else:
                 break
+
+@co_api.route('/')
+class Courses(Resource):
+    @jwt_required
+    def get(self):
+        term = get_term()
+        while True:
+            try:
+                ts = startTransaction()
+                courseInfo = text('SELECT * FROM courses WHERE term=:term')
+                response = db.engine.execute(courseInfo, term=term).fetchall()
+                updatets = text('UPDATE courses SET readts = :ts WHERE term=:term')
+                db.engine.execute(updatets, ts=ts, term=term)
+                endTransaction()
+            except psycopg2.Error:
+                rollBack()
+            else:
+                break
+        return json.dumps([dict(row) for row in response])
 
 if __name__ == '__main__':
     app.run(debug=True)
