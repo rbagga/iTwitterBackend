@@ -310,6 +310,69 @@ def create_concurrency_triggers():  #### may still need to write an insert trigg
         ON timestamptest
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_update_timestamp();
+        """,
+        """
+        CREATE TRIGGER update_timestamp
+        BEFORE UPDATE
+        ON courses
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_update_timestamp();
+        """,
+        """
+        CREATE TRIGGER update_timestamp
+        BEFORE UPDATE
+        ON faculty
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_update_timestamp();
+        """,
+        """
+        CREATE TRIGGER update_timestamp
+        BEFORE UPDATE
+        ON students
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_update_timestamp();
+        """,
+        """
+        CREATE TRIGGER update_timestamp
+        BEFORE UPDATE
+        ON session
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_update_timestamp();
+        """,
+        """
+        CREATE TRIGGER update_timestamp
+        BEFORE UPDATE
+        ON student_question
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_update_timestamp();
+        """,
+        """
+        CREATE TRIGGER update_timestamp
+        BEFORE UPDATE
+        ON upvotes
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_update_timestamp();
+        """,
+        """
+        CREATE TRIGGER update_timestamp
+        BEFORE UPDATE
+        ON iclickerresponse
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_update_timestamp();
+        """,
+        """
+        CREATE TRIGGER update_timestamp
+        BEFORE UPDATE
+        ON enrollment
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_update_timestamp();
+        """,
+        """
+        CREATE TRIGGER update_timestamp
+        BEFORE UPDATE
+        ON iclickerresponse
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_update_timestamp();
         """
     )
 
