@@ -265,18 +265,21 @@ class login(Resource):
         token = create_access_token(identity=netid)
         return {'token': token}, 200
 
-@s_api.route('/')
+@s_api.route('/<netid>')
 class sessioninformation(Resource):
     @jwt_required
     def get(self):
         global response
+        netid = get_jwt_identity()
         while True:
             try:
                 ts = startTransaction()
-                sessionInfo = text('SELECT * from session')
-                response = db.engine.execute(sessionInfo).fetchall()
-                updatets = text('UPDATE session SET readts = :ts')
-                db.engine.execute(updatets, ts=ts)
+                sessionid = get_sessionid_student(netid, ts)
+                if sessionid is not None:
+                    sessionInfo = text('SELECT * FROM session WHERE sessionid=:sessionid')
+                    response = db.engine.execute(sessionInfo, sessionid=sessionid).fetchall()
+                    updatets = text('UPDATE session SET readts = :ts WHERE sessionid=:sessionid')
+                    db.engine.execute(updatets, ts=ts, sessionid=sessionid)
                 endTransaction()
             except psycopg2.Error:
                 rollBack()
