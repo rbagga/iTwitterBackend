@@ -9,7 +9,7 @@ WORKDIR /PythonBuddy
 
 COPY ./PythonBuddy/requirements.txt /PythonBuddy/requirements.txt
 
-EXPOSE 5000
+EXPOSE 5005
 
 RUN python -m pip install -r requirements.txt
 

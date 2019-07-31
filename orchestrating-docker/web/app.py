@@ -764,7 +764,7 @@ class CodingEnvironment(Resource):
 
 
         dictToSend = {'code': code}
-        url = 'http://coding:5002/run_code'
+        url = 'http://coding:5005/run_code'
         res = requests.post(url, json=dictToSend)
         dictFromServer = res.json()
         return dictFromServer
