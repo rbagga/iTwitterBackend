@@ -308,14 +308,14 @@ def create_concurrency_triggers():  #### may still need to write an insert trigg
         RETURNS  trigger AS $$
         BEGIN
             RAISE NOTICE 'Checking ability to read/write';
-            IF NEW.writets IS NOT NULL THEN
+            IF NEW.writets IS NOT NULL OR NEW.readts=0 THEN
                 RAISE NOTICE 'Checking for ability to write';
                 IF (OLD.writets IS NOT NULL AND OLD.writets>NEW.writets) OR (OLD.readts IS NOT NULL AND OLD.readts>NEW.writets) THEN
                     RAISE EXCEPTION 'UPDATE concurrency: row has been read or written to by a more recent transaction';
                 ELSE
                     NEW.readts = OLD.readts;
                 END IF;
-            ELSEIF NEW.readts IS NOT NULL THEN
+            ELSEIF NEW.readts IS NOT NULL OR NEW.writets=0 THEN
                 RAISE NOTICE 'Checking for ability to read';
                 IF OLD.writets IS NOT NULL AND OLD.writets>NEW.readts THEN
                     RAISE EXCEPTION 'READ concurrency: row has been written to by a more recent transaction';

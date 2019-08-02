@@ -161,17 +161,6 @@ def get_sessionid_student(netid, ts):
         return sessionid
     return None
 
-def get_sessionid_student(netid, ts):
-    sessionid_query = text('SELECT session.sessionid FROM session JOIN enrollment ON session.course_number = enrollment.course_number AND session.term = enrollment.term WHERE enrollment.netid = :netid')
-    sessionid_list = db.engine.execute(sessionid_query, netid=netid).fetchone()
-    if sessionid_list is not None:
-        sessionid = sessionid_list[0]
-        updatets = text('UPDATE enrollment SET readts = :ts WHERE netid = :netid')
-        db.engine.execute(updatets, ts=ts, netid=netid)
-        updatets2 = text('UPDATE session SET readts = :ts WHERE sessionid = :sessionid')
-        db.engine.execute(updatets2, ts=ts, sessionid=sessionid)
-        return sessionid
-    return None
 
 @cu_api.route('/')
 class createuser(Resource):
@@ -756,11 +745,10 @@ class Courses(Resource):
 class CodingEnvironment(Resource):
     @api.expect(post_coding_model)
     @api.doc(body=post_coding_model)
-    #@jwt_required
+    @jwt_required
     def post(self):
         params = api.payload
         code = params.pop('code')
-        #netid = get_jwt_identity()
 
 
         dictToSend = {'code': code}
