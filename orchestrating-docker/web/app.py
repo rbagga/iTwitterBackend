@@ -756,7 +756,7 @@ class Courses(Resource):
 class CodingEnvironment(Resource):
     @api.expect(post_coding_model)
     @api.doc(body=post_coding_model)
-    @jwt_required
+    #@jwt_required
     def post(self):
         params = api.payload
         code = params.pop('code')
@@ -764,7 +764,7 @@ class CodingEnvironment(Resource):
 
 
         dictToSend = {'code': code}
-        url = 'http://coding:5002/run_code'
+        url = 'http://coding:5000/run_code'
         res = requests.post(url, json=dictToSend)
         dictFromServer = res.json()
         return dictFromServer
